@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+import "google/protobuf/timestamp.proto";
+
+// DataClassification is the minimum classification carried by an internal event.
+enum DataClassification {
+  DATA_CLASSIFICATION_UNSPECIFIED = 0;
+  DATA_CLASSIFICATION_PUBLIC = 1;
+  DATA_CLASSIFICATION_INTERNAL = 2;
+  DATA_CLASSIFICATION_CONFIDENTIAL = 3;
+  DATA_CLASSIFICATION_RESTRICTED = 4;
+  DATA_CLASSIFICATION_HIGHLY_RESTRICTED = 5;
+}
+
+// EventMetadata supports traceability without embedding source-system secrets.
+message EventMetadata {
+  // Globally unique immutable event identifier created by the producing service.
+  string event_id = 1;
+  // Correlation identifier propagated across API, event and workflow boundaries.
+  string correlation_id = 2;
+  // Stable name of the producing deployable, not a personal user identifier.
+  string producer = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  google.protobuf.Timestamp recorded_at = 5;
+  DataClassification data_classification = 6;
+  // Non-sensitive, schema-governed context. Secret values and raw credentials are prohibited.
+  map<string, string> attributes = 7;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// EvidencePackageCreated is emitted after a service has validated and durably recorded an evidence package.
+message EvidencePackageCreated {
+  EventMetadata metadata = 1;
+  // Service-assigned immutable package identifier.
+  string evidence_package_id = 2;
+  // The external business reference is tokenized or minimised according to the data contract.
+  string external_reference = 3;
+  string evidence_type = 4;
+  // Cryptographic digest of the canonical content; raw document content is not carried in the event.
+  string content_sha256 = 5;
+  google.protobuf.Timestamp received_at = 6;
+  string validation_status = 7;
+  string workflow_case_id = 8;
+}
+
+// EvidencePackageValidationChanged records a state transition and is replay-safe by package/version.
+message EvidencePackageValidationChanged {
+  EventMetadata metadata = 1;
+  string evidence_package_id = 2;
+  string prior_validation_status = 3;
+  string validation_status = 4;
+  string validation_reason_code = 5;
+  string workflow_case_id = 6;
+}

@@ -1,0 +1,5 @@
+.DS_Store
+*.pb
+*.pb.bin
+*.descriptor.bin
+coverage/

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// WaterwayTelemetryAccepted records acceptance after authentication, schema validation,
+// ordering/freshness checks and durable persistence. It is not a raw device packet.
+message WaterwayTelemetryAccepted {
+  EventMetadata metadata = 1;
+  string device_id = 2;
+  string gateway_id = 3;
+  string telemetry_type = 4;
+  uint64 source_sequence = 5;
+  google.protobuf.Timestamp observed_at = 6;
+  string integrity_status = 7;
+  string freshness_status = 8;
+  string payload_digest_sha256 = 9;
+}
+
+// SafetyCaseOpened records the creation of an operator-reviewable safety case.
+message SafetyCaseOpened {
+  EventMetadata metadata = 1;
+  string safety_case_id = 2;
+  string severity = 3;
+  string detection_reason_code = 4;
+  string source_event_id = 5;
+  string workflow_case_id = 6;
+}
