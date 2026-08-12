@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+// AuditOutcome records the authoritative outcome of an attempted action.
+enum AuditOutcome {
+  AUDIT_OUTCOME_UNSPECIFIED = 0;
+  AUDIT_OUTCOME_SUCCEEDED = 1;
+  AUDIT_OUTCOME_DENIED = 2;
+  AUDIT_OUTCOME_FAILED = 3;
+  AUDIT_OUTCOME_PARTIALLY_SUCCEEDED = 4;
+}
+
+// AuditEvent is an immutable, minimised security and accountability event.
+// It must not contain secrets, raw access tokens, password material, request bodies,
+// full personal data, full IP addresses where policy requires minimisation, or raw
+// restricted evidence. Correlation IDs and opaque subject/resource references allow
+// authorised investigations without copying sensitive content into every log stream.
+message AuditEvent {
+  EventMetadata metadata = 1;
+  string audit_event_id = 2;
+  string action = 3;
+  AuditOutcome outcome = 4;
+  string actor_subject_reference = 5;
+  string actor_type = 6;
+  string resource_type = 7;
+  string resource_reference = 8;
+  string decision_reason_code = 9;
+  string policy_reference = 10;
+  string request_reference = 11;
+  string source_service = 12;
+  string trace_reference = 13;
+  google.protobuf.Timestamp decision_at = 14;
+  map<string, string> non_sensitive_attributes = 15;
+}
