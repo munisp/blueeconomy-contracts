@@ -1,0 +1,40 @@
+name: Contract Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  descriptor-and-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Install Protocol Buffers compiler
+        run: sudo apt-get update && sudo apt-get install --yes protobuf-compiler
+      - name: Validate descriptors
+        run: ./scripts/validate-contracts.sh
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+      - name: Lint and check formatting
+        run: |
+          buf lint
+          buf format --diff --exit-code
+      - name: Detect breaking changes on pull requests
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          buf breaking --against ".git#branch=${{ github.base_ref }}"

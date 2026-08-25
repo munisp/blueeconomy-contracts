@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+import "blueeconomy/contracts/v1/common.proto";
+
+// MobileObservationAccepted is the minimised, validated event boundary for a
+// field observation accepted by approved middleware. It intentionally carries
+// a content digest and location reference rather than raw narrative, secrets,
+// credentials, documents, or precise sensitive coordinates.
+message MobileObservationAccepted {
+  EventMetadata metadata = 1;
+  string observation_id = 2;
+  string category = 3;
+  string severity = 4;
+  string location_reference = 5;
+  string content_digest_sha256 = 6;
+  string validation_status = 7;
+  string contract_version = 8;
+}
