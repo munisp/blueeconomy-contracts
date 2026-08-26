@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   descriptor-and-lint:
+    name: Contract Quality
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -26,7 +27,7 @@ jobs:
       - name: Validate descriptors
         run: ./scripts/validate-contracts.sh
       - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+        uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
       - name: Lint and check formatting
         run: |
           buf lint
@@ -36,5 +37,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin "${{ github.base_ref }}" --depth=1
+          git fetch origin "${{ github.base_ref }}:refs/heads/${{ github.base_ref }}" --depth=1
           buf breaking --against ".git#branch=${{ github.base_ref }}"

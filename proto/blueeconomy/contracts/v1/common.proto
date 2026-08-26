@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // DataClassification is the minimum classification carried by an internal event.
 enum DataClassification {
