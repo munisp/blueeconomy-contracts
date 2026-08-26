@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "blueeconomy/contracts/v1/common.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // MobileObservationAccepted is the minimised, validated event boundary for a
 // field observation accepted by approved middleware. It intentionally carries

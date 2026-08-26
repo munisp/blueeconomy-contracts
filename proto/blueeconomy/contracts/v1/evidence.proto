@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "blueeconomy/contracts/v1/common.proto";
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // EvidencePackageCreated is emitted after a service has validated and durably recorded an evidence package.
 message EvidencePackageCreated {
