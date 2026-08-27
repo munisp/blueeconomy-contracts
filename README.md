@@ -52,16 +52,34 @@ Domain messages are *resources*, not standalone envelopes: they are transported 
 - Breaking changes require a new package version (`v2`), a documented migration decision, a consumer inventory and a compatibility window before merge, per `docs/contract-lifecycle.md` and the strict review policy.
 - `envelope_version` on the wire tracks the envelope contract version; consumers must reject unsupported major versions.
 
+### Tagging and release policy
+
+- Contract releases are tagged `v<MAJOR>.<MINOR>.<PATCH>` (for example `v1.2.3`) from `main`. Within v1 only additive changes may ship: bump PATCH for clarifications and comment changes, MINOR for new messages, fields or enum values. MAJOR is never bumped inside the v1 package; breaking changes require a new `v2` package per the policy above.
+- Each `v*` tag triggers the Contract Release workflow, which verifies `buf breaking` (FILE ruleset) against the previous `v*` tag (fail-closed), verifies the committed generated code is reproducible, builds the generated Go module, and publishes a GitHub release with the descriptor set attached. Releases are immutable: the workflow refuses to recreate an existing release.
+- Go module tags `gen/go/v<same-version>` are created at the same commit so consumers can `go get` the generated module by version. These aliases carry no independent contract meaning; compatibility is governed by the `v*` contract tags only.
+
 ## Consuming the contracts
 
-There is no published generated-code module yet; generate from source pinned to a git tag or commit:
+### Go (generated module, committed)
+
+Generated Go code (protobuf-go messages, grpc-go ready) is committed under `gen/go/` as the module `github.com/munisp/blueeconomy-contracts/gen/go`. Pin an immutable release tag; do not track a moving branch:
+
+```bash
+go get github.com/munisp/blueeconomy-contracts/gen/go@gen/go/v1.2.3
+```
+
+`gen/go/v1.2.3` module tags point at the same commit as contract release tag `v1.2.3` (Go requires the directory prefix for subdirectory modules). CI enforces that the committed code is reproducible: `buf generate` followed by `git diff --exit-code -- gen/go` must be clean, and `go build ./...` + `go vet ./...` must pass in `gen/go`.
+
+### Other languages
+
+Generate from source pinned to a git tag or commit:
 
 ```bash
 buf generate --template '{"version":"v2","plugins":[{"local":"protoc-gen-go","out":"gen/go"}]}' \
   git+https://github.com/munisp/blueeconomy-contracts.git#tag=<release-tag>
 ```
 
-or clone and run `protoc`/your language plugin against `proto/` with the protobuf well-known types on the include path. Pin to an immutable ref; do not track a moving branch.
+or clone and run `protoc`/your language plugin against `proto/` with the protobuf well-known types on the include path. Release tags also carry a descriptor-set artifact (`blueeconomy-contracts-<tag>.descriptor.binpb`, imports included) on the GitHub release.
 
 ## Validation
 
