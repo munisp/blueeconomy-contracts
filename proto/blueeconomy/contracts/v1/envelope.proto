@@ -1,0 +1,99 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// EnvelopeClassification is the handling classification asserted by the producer
+// for the entire envelope. FIDUCIARY_SEGREGATED marks fiduciary content (for
+// example CVFF disbursement flows) that must be stored and replayed in a
+// segregated trust boundary; it does not replace the per-event DataClassification
+// in common.proto, which governs internal evidence/audit streams.
+enum EnvelopeClassification {
+  ENVELOPE_CLASSIFICATION_UNSPECIFIED = 0;
+  ENVELOPE_CLASSIFICATION_PUBLIC = 1;
+  ENVELOPE_CLASSIFICATION_INTERNAL = 2;
+  ENVELOPE_CLASSIFICATION_CONFIDENTIAL = 3;
+  ENVELOPE_CLASSIFICATION_FIDUCIARY_SEGREGATED = 4;
+}
+
+// BundleType mirrors the FHIR R4 Bundle.type codes permitted on this platform.
+// Fail closed: only MESSAGE is valid for event transport; consumers must reject
+// any other value, including UNSPECIFIED.
+enum BundleType {
+  BUNDLE_TYPE_UNSPECIFIED = 0;
+  BUNDLE_TYPE_MESSAGE = 1;
+}
+
+// BundleEntry is one entry of a FHIR-aligned message Bundle.
+message BundleEntry {
+  // Stable entry reference (for example "urn:uuid:<uuid>") so entries can
+  // reference each other without embedding content.
+  string full_url = 1;
+  // The domain resource. Modelled as google.protobuf.Any so that the resource
+  // type is explicit in the type_url (for example
+  // "type.googleapis.com/blueeconomy.contracts.v1.TruckBookingCreated") and
+  // consumers can fail closed on unrecognised types. google.protobuf.Struct was
+  // rejected: it would discard schema governance and typed code generation for
+  // the resources carried on the platform's topics.
+  google.protobuf.Any resource = 2;
+}
+
+// FhirMessageBundle is the pragmatic, FHIR R4-aligned message Bundle carried by
+// every envelope. resource_type is fixed to "Bundle" and type to
+// BUNDLE_TYPE_MESSAGE; producers must not emit and consumers must reject any
+// other combination (fail closed). The first entry is the primary event
+// resource for the topic; subsequent entries are supporting resources
+// referenced by full_url.
+message FhirMessageBundle {
+  // Fixed FHIR resourceType discriminator. Must be "Bundle".
+  string resource_type = 1;
+  // Must be BUNDLE_TYPE_MESSAGE.
+  BundleType type = 2;
+  // Producer-assigned immutable bundle identifier.
+  string bundle_id = 3;
+  repeated BundleEntry entry = 4;
+}
+
+// EventProvenance binds the envelope to an authenticated principal and to the
+// platform ledger without copying credentials or personal data into the event.
+message EventProvenance {
+  // Keycloak "sub" claim of the authenticated principal (service account or
+  // user). Opaque subject identifier; never a username, email or raw token.
+  string principal_id = 1;
+  // Keycloak realm/client role reference of the principal at emission time.
+  string principal_role = 2;
+  // Detached signature over the canonical envelope serialisation, verifiable
+  // against the producer's published key. The signing key itself is never
+  // carried in the event.
+  string signature = 3;
+  // Hash of the ledger commit under which this event was anchored. Empty until
+  // the commit is recorded; reconciliation uses the AuditCommitRecorded event.
+  string ledger_commit_hash = 4;
+}
+
+// EventEnvelope is the single integration backbone carried on every platform
+// Kafka topic (ports.*, ferries.*, cvff.*). Every domain event is transported
+// as the primary resource of the embedded FHIR-aligned message Bundle.
+// Consumers must validate envelope_version, type, classification and signature
+// before unpacking entry resources, and must fail closed on any violation.
+message EventEnvelope {
+  // Semantic version of this envelope contract, for example "1.0.0".
+  string envelope_version = 1;
+  // Globally unique immutable event identifier created by the producer.
+  string event_id = 2;
+  // Dotted event type, for example "ports.ecallup.truck_booking.created.v1".
+  // The value must correspond to the primary resource type in the bundle.
+  string event_type = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  // Stable name of the producing deployable, not a personal user identifier.
+  string producer = 5;
+  // Correlation identifier propagated across API, event and workflow boundaries.
+  string correlation_id = 6;
+  FhirMessageBundle bundle = 7;
+  EventProvenance provenance = 8;
+  EnvelopeClassification classification = 9;
+}

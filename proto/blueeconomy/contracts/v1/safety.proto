@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "blueeconomy/contracts/v1/common.proto";
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // WaterwayTelemetryAccepted records acceptance after authentication, schema validation,
 // ordering/freshness checks and durable persistence. It is not a raw device packet.
@@ -25,8 +25,11 @@ message WaterwayTelemetryAccepted {
 message SafetyCaseOpened {
   EventMetadata metadata = 1;
   string safety_case_id = 2;
-  string severity = 3;
+  // Deprecated free-text severity. Producers must populate severity_level;
+  // consumers must prefer severity_level and fail closed when it is UNSPECIFIED.
+  string severity = 3 [deprecated = true];
   string detection_reason_code = 4;
   string source_event_id = 5;
   string workflow_case_id = 6;
+  Severity severity_level = 7;
 }

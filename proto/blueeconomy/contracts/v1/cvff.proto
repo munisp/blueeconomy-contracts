@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream C: Cabotage Vessel Financing Fund (cvff.* topics). These events
+// are fiduciary: they are transported in envelopes classified
+// ENVELOPE_CLASSIFICATION_FIDUCIARY_SEGREGATED and carry tokenized references,
+// digests and integer money only — never applicant personal records, bank
+// account details or credit documents.
+
+// PliTier is the Primary Lending Institution risk-sharing tier assigned at
+// underwriting. The suffix is the tier's coverage percentage; the zero value
+// is invalid and consumers must fail closed on it.
+enum PliTier {
+  PLI_TIER_UNSPECIFIED = 0;
+  PLI_TIER_PRIMARY_50 = 1;
+  PLI_TIER_SECONDARY_35 = 2;
+  PLI_TIER_TERTIARY_15 = 3;
+}
+
+// UnderwritingOutcome is the fail-closed outcome of underwriting.
+enum UnderwritingOutcome {
+  UNDERWRITING_OUTCOME_UNSPECIFIED = 0;
+  UNDERWRITING_OUTCOME_APPROVED = 1;
+  UNDERWRITING_OUTCOME_DECLINED = 2;
+  UNDERWRITING_OUTCOME_REFERRED = 3;
+}
+
+// FourPartyRole identifies each required approver in the four-party approval
+// chain: NIMASA approver, PLI tiers, receiving bank, beneficiary.
+enum FourPartyRole {
+  FOUR_PARTY_ROLE_UNSPECIFIED = 0;
+  FOUR_PARTY_ROLE_NIMASA_APPROVER = 1;
+  FOUR_PARTY_ROLE_PLI_TIERS = 2;
+  FOUR_PARTY_ROLE_RECEIVING_BANK = 3;
+  FOUR_PARTY_ROLE_BENEFICIARY = 4;
+}
+
+// FourPartyApprovalStatus is the fail-closed aggregate state of the chain.
+// Disbursement is prohibited unless status is COMPLETED.
+enum FourPartyApprovalStatus {
+  FOUR_PARTY_APPROVAL_STATUS_UNSPECIFIED = 0;
+  FOUR_PARTY_APPROVAL_STATUS_PENDING = 1;
+  FOUR_PARTY_APPROVAL_STATUS_IN_PROGRESS = 2;
+  FOUR_PARTY_APPROVAL_STATUS_COMPLETED = 3;
+  FOUR_PARTY_APPROVAL_STATUS_REJECTED = 4;
+  FOUR_PARTY_APPROVAL_STATUS_STALLED = 5;
+}
+
+// LoanApplicationSubmitted records an application accepted after intake
+// validation. The applicant is a tokenized reference; supporting documents are
+// represented only by digest.
+message LoanApplicationSubmitted {
+  // Service-assigned immutable application identifier.
+  string application_id = 1;
+  // Tokenized applicant reference held by the origination service.
+  string applicant_reference = 2;
+  // Tokenized vessel or asset reference being financed.
+  string vessel_reference = 3;
+  // Requested principal in NGN minor units.
+  Money requested_amount = 4;
+  // Digest of the canonical application package; raw documents are not carried.
+  string application_digest_sha256 = 5;
+}
+
+// UnderwritingDecisionRecorded records the underwriting outcome and the PLI
+// risk-sharing tier for an application. Credit scores, bank statements and
+// personal data remain inside the underwriting boundary.
+message UnderwritingDecisionRecorded {
+  string underwriting_decision_id = 1;
+  string application_id = 2;
+  UnderwritingOutcome outcome = 3;
+  // Required when outcome is APPROVED or REFERRED; must be UNSPECIFIED only
+  // when outcome is DECLINED.
+  PliTier pli_tier = 4;
+  // Stable machine-readable reason code for DECLINED or REFERRED outcomes.
+  string decision_reason_code = 5;
+  // Governance reference of the underwriting policy version applied.
+  string policy_reference = 6;
+  // Digest of the underwriting working papers; raw papers are not carried.
+  string working_papers_digest_sha256 = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+// PartyApproval is one link of the four-party approval chain. Approvers are
+// tokenized references; only the digest of the signed approval artefact is
+// carried.
+message PartyApproval {
+  FourPartyRole role = 1;
+  // Tokenized approver reference within the approving institution.
+  string approver_reference = 2;
+  google.protobuf.Timestamp approved_at = 3;
+  // Digest of the signed approval artefact; raw artefacts are not carried.
+  string approval_digest_sha256 = 4;
+}
+
+// FourPartyApprovalRecorded records the state of the approval chain for an
+// application: NIMASA approver, PLI tiers, receiving bank and beneficiary.
+// Approvals must appear in chain order; producers must not emit and consumers
+// must reject COMPLETED with fewer than the four required roles.
+message FourPartyApprovalRecorded {
+  string four_party_approval_id = 1;
+  string application_id = 2;
+  repeated PartyApproval approvals = 3;
+  FourPartyApprovalStatus status = 4;
+  string status_reason_code = 5;
+}
+
+// FxAdjustedEntry pairs an NGN disbursement amount with its CBN fx-adjusted USD
+// cost so the fund's reporting currency exposure is explicit and auditable.
+message FxAdjustedEntry {
+  // CBN official rate, NGN per USD, scaled by 1e6 (for example 1535500000 for
+  // a rate of 1535.50). Integer-scaled only; floating-point rates are
+  // prohibited.
+  int64 fx_rate_cbn_micros = 1;
+  // Fx-adjusted cost in USD minor units, derived from the NGN amount at
+  // fx_rate_cbn_micros. Consumers must fail closed when the pair is
+  // inconsistent beyond documented rounding tolerance.
+  Money usd_cost = 2;
+}
+
+// DisbursementRecorded records a fiduciary disbursement against a completed
+// four-party approval. Amounts are integer minor units only.
+message DisbursementRecorded {
+  string disbursement_id = 1;
+  string application_id = 2;
+  string four_party_approval_id = 3;
+  // Disbursed amount in NGN minor units.
+  Money amount_ngn = 4;
+  // Paired CBN fx-adjusted USD cost entry for the disbursement.
+  FxAdjustedEntry fx_adjusted_entry = 5;
+  // Tokenized receiving-bank settlement reference; account numbers are
+  // prohibited.
+  string settlement_reference = 6;
+  google.protobuf.Timestamp disbursed_at = 7;
+}
+
+// AuditCommitRecorded anchors a batch of fiduciary events into the platform
+// ledger. It carries only hashes and references; envelope payloads are resolved
+// through event references.
+message AuditCommitRecorded {
+  string audit_commit_id = 1;
+  // Hash of the ledger commit; matches EventEnvelope.provenance
+  // .ledger_commit_hash for anchored envelopes.
+  string ledger_commit_hash = 2;
+  // Hash of the previous commit, forming the tamper-evident chain.
+  string previous_commit_hash = 3;
+  // Event identifiers of the envelopes anchored by this commit, in order.
+  repeated string event_ids = 4;
+  // Ledger height or sequence of the commit.
+  uint64 commit_sequence = 5;
+  google.protobuf.Timestamp committed_at = 6;
+}
