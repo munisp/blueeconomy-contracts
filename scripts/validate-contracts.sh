@@ -29,3 +29,25 @@ protoc \
 
 test -s "$out"
 echo "Validated ${#proto_files[@]} contract files into a Protocol Buffers descriptor set."
+
+# Generated-Go gates: descriptor compilation alone lets gen/ drift silently.
+# When buf, Go, and git are available, verify the committed generated code is
+# both fresh (buf generate produces no diff) and compilable. The gates skip
+# only when a tool is genuinely absent; a failing gate fails the script.
+missing=()
+command -v buf >/dev/null 2>&1 || missing+=(buf)
+command -v go >/dev/null 2>&1 || missing+=(go)
+command -v git >/dev/null 2>&1 || missing+=(git)
+
+if [[ ${#missing[@]} -gt 0 ]]; then
+  echo "Skipping generated-code gates; not installed: ${missing[*]}" >&2
+  exit 0
+fi
+
+(cd "$repo_root" && buf generate)
+if ! (cd "$repo_root" && git diff --exit-code -- gen/); then
+  echo "Generated code is stale; run 'buf generate' and commit the result." >&2
+  exit 1
+fi
+(cd "$repo_root/gen/go" && go mod download && go build ./...)
+echo "Generated Go code is current and compiles."
