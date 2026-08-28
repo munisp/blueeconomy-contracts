@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream D: seafarer credentialing and training (seafarer.credential.v1,
+// seafarer.revocation.v1 topics). Each message is a domain resource transported
+// as the primary resource of an EventEnvelope FHIR message Bundle. These events
+// reference W3C Verifiable Credentials 2.0 by digest and status-list entry only:
+// the VC payload itself, personal identity data and examination scripts stay
+// inside the issuing boundary and are never carried on the bus. Envelopes
+// carrying these resources must be classified
+// ENVELOPE_CLASSIFICATION_CONFIDENTIAL.
+
+// VerifierRole identifies the fail-closed role of a party requesting credential
+// verification. Free-text verifier roles are prohibited.
+enum VerifierRole {
+  VERIFIER_ROLE_UNSPECIFIED = 0;
+  VERIFIER_ROLE_EMPLOYER = 1;
+  VERIFIER_ROLE_PORT_STATE_CONTROL = 2;
+}
+
+// VerificationResult is the fail-closed outcome of a credential verification.
+// Consumers must fail closed on UNSPECIFIED.
+enum VerificationResult {
+  VERIFICATION_RESULT_UNSPECIFIED = 0;
+  VERIFICATION_RESULT_VERIFIED = 1;
+  VERIFICATION_RESULT_REJECTED_INVALID = 2;
+  VERIFICATION_RESULT_REJECTED_REVOKED = 3;
+  VERIFICATION_RESULT_REJECTED_EXPIRED = 4;
+  VERIFICATION_RESULT_STATUS_UNKNOWN = 5;
+}
+
+// RevocationReason is the fail-closed reason a credential was revoked.
+// Free-text revocation reasons are prohibited.
+enum RevocationReason {
+  REVOCATION_REASON_UNSPECIFIED = 0;
+  REVOCATION_REASON_ISSUER_WITHDRAWAL = 1;
+  REVOCATION_REASON_SUPERSEDED = 2;
+  REVOCATION_REASON_COMPLIANCE_SUSPENSION = 3;
+  REVOCATION_REASON_FRAUD_DETECTED = 4;
+  REVOCATION_REASON_HOLDER_REQUEST = 5;
+}
+
+// TrainingStage is the fail-closed stage of a seafarer's training progression.
+// Free-text stage values are prohibited.
+enum TrainingStage {
+  TRAINING_STAGE_UNSPECIFIED = 0;
+  TRAINING_STAGE_EXAM_REGISTRATION = 1;
+  TRAINING_STAGE_EXAM_RESULT = 2;
+  TRAINING_STAGE_TRAINING_COMPLETION = 3;
+  TRAINING_STAGE_CREDENTIAL_ELIGIBILITY = 4;
+}
+
+// CredentialIssued records the issue of a W3C Verifiable Credential 2.0 to a
+// seafarer. The event carries only the credential digest and the status-list
+// reference needed to resolve revocation state; the VC payload itself is not
+// carried (data-minimised).
+message CredentialIssued {
+  // Service-assigned immutable credential identifier.
+  string credential_id = 1;
+  // Tokenized seafarer reference held by the credentialing service.
+  string seafarer_reference = 2;
+  // Tokenized issuing authority reference.
+  string issuer_reference = 3;
+  // Stable machine-readable credential type code (for example "COC_DECK").
+  string credential_type_code = 4;
+  // Digest of the canonical W3C VC 2.0 credential; the VC payload is not
+  // carried in the event.
+  string credential_digest_sha256 = 5;
+  // Opaque reference of the W3C status-list credential governing revocation
+  // state; resolvable inside the issuing boundary.
+  string status_list_reference = 6;
+  // Index of this credential's entry within the status list.
+  uint64 status_list_index = 7;
+  google.protobuf.Timestamp issued_at = 8;
+}
+
+// CredentialVerificationRequested records a verifier's request to verify a
+// credential by digest. No personal data about the seafarer is carried.
+message CredentialVerificationRequested {
+  string verification_request_id = 1;
+  // Digest of the credential being verified; matches
+  // CredentialIssued.credential_digest_sha256.
+  string credential_digest_sha256 = 2;
+  // Tokenized verifier reference held by the verification service.
+  string verifier_reference = 3;
+  VerifierRole verifier_role = 4;
+  google.protobuf.Timestamp requested_at = 5;
+}
+
+// CredentialVerificationCompleted records the fail-closed outcome of a
+// verification request. The result is enum-governed; free-text outcomes are
+// prohibited.
+message CredentialVerificationCompleted {
+  string verification_request_id = 1;
+  // Digest of the credential that was verified.
+  string credential_digest_sha256 = 2;
+  VerifierRole verifier_role = 3;
+  VerificationResult result = 4;
+  // Stable machine-readable reason code when result is not VERIFIED.
+  string result_reason_code = 5;
+  // Status-list reference consulted for revocation state, when applicable.
+  string status_list_reference = 6;
+  google.protobuf.Timestamp completed_at = 7;
+}
+
+// CredentialRevoked records the revocation of a credential on its status list.
+// The reason is enum-governed; free-text reasons are prohibited.
+message CredentialRevoked {
+  string credential_id = 1;
+  // Digest of the revoked credential.
+  string credential_digest_sha256 = 2;
+  RevocationReason reason = 3;
+  // Status-list reference on which the revocation was published.
+  string status_list_reference = 4;
+  // Index of the revoked entry within the status list.
+  uint64 status_list_index = 5;
+  google.protobuf.Timestamp revoked_at = 6;
+}
+
+// TrainingProgression records a seafarer's transition through a training stage.
+// Examination scripts and assessor notes stay inside the training boundary;
+// only the digest of the stage outcome record is carried.
+message TrainingProgression {
+  string progression_id = 1;
+  // Tokenized seafarer reference held by the training service.
+  string seafarer_reference = 2;
+  // Training programme or course reference.
+  string training_programme_reference = 3;
+  TrainingStage stage = 4;
+  // Digest of the canonical stage outcome record (for example the exam result
+  // record); raw records are not carried in the event.
+  string outcome_digest_sha256 = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+}

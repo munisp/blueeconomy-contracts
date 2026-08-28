@@ -4,7 +4,7 @@ This repository is the authoritative source for versioned API, event, identity-c
 
 ## Contract status
 
-The contracts define the platform event envelope, the FHIR-aligned domain contracts for the three integration workstreams, and the maritime evidence and waterway-safety event boundaries. They are syntactically validated as Protocol Buffers descriptors and linted with Buf `STANDARD` rules. They do **not** claim conformance with an external Ministry or partner API until its authoritative interface and a successful non-production test are recorded under the integration-gate policy.
+The contracts define the platform event envelope, the FHIR-aligned domain contracts for the six integration workstreams, and the maritime evidence and waterway-safety event boundaries. They are syntactically validated as Protocol Buffers descriptors and linted with Buf `STANDARD` rules. They do **not** claim conformance with an external Ministry or partner API until its authoritative interface and a successful non-production test are recorded under the integration-gate policy.
 
 ## Layout
 
@@ -12,10 +12,13 @@ All contracts live under `proto/blueeconomy/contracts/v1/` in the `blueeconomy.c
 
 | File | Purpose |
 | --- | --- |
-| `envelope.proto` | `EventEnvelope`: the integration backbone carried on every Kafka topic (`ports.*`, `ferries.*`, `cvff.*`). |
+| `envelope.proto` | `EventEnvelope`: the integration backbone carried on every Kafka topic (`ports.*`, `ferries.*`, `cvff.*`, `seafarer.*`, `fisheries.*`, `coldchain.*`, `export.*`, `maritime.*`). |
 | `ecallup.proto` | Workstream A: e-Call-Up truck booking, slot, payment and gate events. |
 | `manifest.proto` | Workstream B: ferry passenger manifest, ticketing, telemetry-reference and weather-alert events. |
 | `cvff.proto` | Workstream C: CVFF loan, underwriting, four-party approval, disbursement and ledger-commit events. |
+| `seafarer.proto` | Workstream D: seafarer credential issue/verification/revocation (W3C VC 2.0 digest + status-list references) and training progression events. |
+| `fisheries.proto` | Workstream E: catch records, cold-chain breach alerts, custody handoffs, export consignment bundling and fraud flags. |
+| `isr.proto` | Workstream F: ISR event admission, track anomaly detection, response transitions and outcome-ledger anchoring. |
 | `common.proto` | Shared metadata, classification, severity/validation enums and integer `Money`. |
 | `audit.proto` | Immutable security/audit event boundary. |
 | `evidence.proto`, `safety.proto`, `mobile_observation.proto` | Evidence, waterway-safety and field-observation event boundaries. |
@@ -39,6 +42,9 @@ Domain messages are *resources*, not standalone envelopes: they are transported 
 - **Workstream A (`ecallup.proto`, `ports.*`)** — per-truck flow: `TruckBookingCreated` → `PaymentIntentUpdated` → `SlotReservationUpdated` → `GateScanRecorded` (gate approval), with audit anchoring via envelope provenance. Trucks, operators and payers are tokenized references; plates, documents and instruments stay inside the producing boundary.
 - **Workstream B (`manifest.proto`, `ferries.*`)** — `PassengerManifestSubmitted` models the manifest as a FHIR-aligned Composition/List: `manifest_bundle` entries are `AnonymizedPassengerEntry` resources carrying only salted digests; `passenger_count` must equal the entry count. Plus `TicketIssued`, `VesselTelemetryRef` and `AdverseWeatherAlert`. No passenger PII ever appears on the bus.
 - **Workstream C (`cvff.proto`, `cvff.*`)** — fiduciary flow: `LoanApplicationSubmitted` → `UnderwritingDecisionRecorded` (PLI tier `PRIMARY_50`/`SECONDARY_35`/`TERTIARY_15`) → `FourPartyApprovalRecorded` (NIMASA approver → PLI tiers → receiving bank → beneficiary; disbursement is prohibited until `COMPLETED`) → `DisbursementRecorded` (NGN integer amount paired with the CBN fx-adjusted USD cost entry) → `AuditCommitRecorded` (hash-chained ledger anchor matching `provenance.ledger_commit_hash`).
+- **Workstream D (`seafarer.proto`, `seafarer.credential.v1`, `seafarer.revocation.v1`)** — `CredentialIssued` references W3C VC 2.0 credentials by digest plus status-list reference only (the VC payload never crosses the bus); `CredentialVerificationRequested`/`CredentialVerificationCompleted` carry an enum verifier role (`EMPLOYER`/`PORT_STATE_CONTROL`) and a fail-closed `VerificationResult`; `CredentialRevoked` carries an enum reason; `TrainingProgression` carries the enum stage (`EXAM_REGISTRATION`/`EXAM_RESULT`/`TRAINING_COMPLETION`/`CREDENTIAL_ELIGIBILITY`). Envelopes are classified `CONFIDENTIAL`.
+- **Workstream E (`fisheries.proto`, `fisheries.catch.v1`, `coldchain.telemetry.v1`, `export.consignment.v1`)** — `CatchRecorded` (enum `SpeciesCode` with `OTHER` escape, integer weight kg, fixed-point micro-degree coordinates, tokenized vessel/operator references) → `ColdChainBreachAlerted` (integer milli-degree threshold/observed, duration) → `CustodyHandoffCompleted` (enum stage `CATCH`/`LANDING`/`COLDCHAIN_TRANSIT`/`PROCESSOR`/`EXPORTER`/`IMPORT_RECEIPT`) → `ExportConsignmentBundled` (Merkle bundle root + custody hash-chain tip) → `FraudFlagRaised` (enum rule `CAPACITY_EXCEEDED`/`SPECIES_MIX_ANOMALY`/`IMPOSSIBLE_SPEED`).
+- **Workstream F (`isr.proto`, `maritime.isr.v1`, `maritime.behaviour.v1`, `maritime.outcome.v1`)** — `IsrEventAdmitted` (enum modality `AIS`/`SAR`/`RF`/`ACOUSTIC`/`OPTICAL`, payload digest only) → `TrackAnomalyDetected` (enum rule `DARK_VESSEL`/`SPEED_OUTLIER`/`RENDEZVOUS`/`LOITERING_RESTRICTED_ZONE`, track + correlation references) → `IsrResponseTransitioned` (enum stage `ALERT`/`CLASSIFICATION`/`DISPATCH`/`INTERDICTION`/`OUTCOME_CAPTURE`) → `OutcomeLedgerPosted` (incident reference + premium-delta evidence digest, hash-chained). ISR content carries its own fail-closed `SecurityClassification`, distinct from envelope classification.
 
 ## Data minimization and fail-closed rules
 
