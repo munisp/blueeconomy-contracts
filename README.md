@@ -27,11 +27,16 @@ All contracts live under `proto/blueeconomy/contracts/v1/` in the `blueeconomy.c
 
 Every message published to a platform topic is an `EventEnvelope`:
 
-- `envelope_version` (semantic version of the envelope contract), `event_id`, `event_type` (dotted, e.g. `ports.ecallup.truck_booking.created.v1`), `occurred_at`, `producer`, `correlation_id`.
-- `bundle`: a pragmatic FHIR R4-aligned **message Bundle** (`resource_type` fixed to `"Bundle"`, `type` fixed to `BUNDLE_TYPE_MESSAGE`, `entry[]` of resources). The first entry is the primary event resource named by `event_type`; later entries are supporting resources cross-referenced by `full_url`.
+- `envelope_version` (the only supported value is `"1.0"`), `event_id`, `event_type` (dotted, e.g. `ports.ecallup.truck_booking.created.v1`), `occurred_at`, `producer`, `correlation_id`.
+- `fhir`: a pragmatic FHIR R4-aligned **message Bundle** (`resource_type` fixed to `"Bundle"`, `type` fixed to `BUNDLE_TYPE_MESSAGE`, `entry[]` of resources) carried under the canonical `fhir` wire key (the legacy `bundle` key is retired). The first entry is the primary event resource named by `event_type`; later entries are supporting resources cross-referenced by `full_url`.
 - `entry.resource` is modelled as `google.protobuf.Any`. This keeps the resource type explicit in the `type_url` (e.g. `type.googleapis.com/blueeconomy.contracts.v1.TruckBookingCreated`), preserves schema governance and typed code generation, and lets consumers fail closed on unrecognised types. `google.protobuf.Struct` was deliberately rejected because it would bypass schema governance.
-- `provenance`: `principal_id` (Keycloak `sub`, never a username or token), `principal_role`, a detached `signature` over the canonical envelope, and the `ledger_commit_hash` anchoring the event.
-- `classification`: `PUBLIC`, `INTERNAL`, `CONFIDENTIAL` or `FIDUCIARY_SEGREGATED` (CVFF flows are always `FIDUCIARY_SEGREGATED`).
+- `provenance`: `principal_id` (Keycloak `sub`, never a username or token), `principal_role`, the fleet `signature`, and the `ledger_commit_hash` anchoring the event.
+- `classification`: `PUBLIC`, `INTERNAL`, `CONFIDENTIAL`, `RESTRICTED` or `FIDUCIARY_SEGREGATED` (CVFF flows are always `FIDUCIARY_SEGREGATED`).
+- `record_classification`: optional per-record clearance label (`UNCLASSIFIED`, `RESTRICTED`, `CONFIDENTIAL`, `SECRET`) persisted by classified-scope consumers for row-level filtering; mandatory for classified scopes.
+
+### Provenance signature (fleet scheme)
+
+`provenance.signature` is a **JWS compact serialization (EdDSA/Ed25519)** over the **JCS-canonicalized (RFC 8785) JSON of the full envelope excluding the signature field**, with protected header `{"alg":"EdDSA","kid":"<producer>-<epoch>"}`. Consumers resolve keys from a mounted public-key directory (`{kid: base64url-ed25519-pubkey}`, path from `KEY_DIRECTORY_PATH`), load it fail-closed at startup, and reject envelopes with an unknown `kid`, malformed compact serialization, payload mismatch, or invalid signature — rejected envelopes are never persisted. The normative specification is [`docs/envelope-signature.md`](docs/envelope-signature.md).
 
 Consumers must validate `envelope_version`, bundle type, classification and signature **before** unpacking entry resources, and must fail closed on any violation.
 

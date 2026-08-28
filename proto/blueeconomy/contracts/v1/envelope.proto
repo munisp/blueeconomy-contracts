@@ -11,18 +11,39 @@ option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/
 // for the entire envelope. FIDUCIARY_SEGREGATED marks fiduciary content (for
 // example CVFF disbursement flows) that must be stored and replayed in a
 // segregated trust boundary; it does not replace the per-event DataClassification
-// in common.proto, which governs internal evidence/audit streams.
+// in common.proto, which governs internal evidence/audit streams. The canonical
+// JSON wire form renders these values without the ENVELOPE_CLASSIFICATION_
+// prefix (for example ENVELOPE_CLASSIFICATION_CONFIDENTIAL renders as
+// "CONFIDENTIAL"); consumers must fail closed on any other value.
 enum EnvelopeClassification {
   ENVELOPE_CLASSIFICATION_UNSPECIFIED = 0;
   ENVELOPE_CLASSIFICATION_PUBLIC = 1;
   ENVELOPE_CLASSIFICATION_INTERNAL = 2;
   ENVELOPE_CLASSIFICATION_CONFIDENTIAL = 3;
-  ENVELOPE_CLASSIFICATION_FIDUCIARY_SEGREGATED = 4;
+  ENVELOPE_CLASSIFICATION_RESTRICTED = 4;
+  ENVELOPE_CLASSIFICATION_FIDUCIARY_SEGREGATED = 5;
+}
+
+// ClearanceLabel is the optional per-record clearance label carried on the
+// envelope so classified-scope consumers can persist row-level filtering
+// columns. It is distinct from the envelope-level EnvelopeClassification:
+// the envelope classification governs the whole event's trust boundary,
+// while the clearance label governs individual reader clearance. Mandatory
+// for records admitted to classified scopes (for example ISR); the
+// UNSPECIFIED zero value means "no per-record label asserted" and classified
+// scopes must fail closed on it.
+enum ClearanceLabel {
+  CLEARANCE_LABEL_UNSPECIFIED = 0;
+  CLEARANCE_LABEL_UNCLASSIFIED = 1;
+  CLEARANCE_LABEL_RESTRICTED = 2;
+  CLEARANCE_LABEL_CONFIDENTIAL = 3;
+  CLEARANCE_LABEL_SECRET = 4;
 }
 
 // BundleType mirrors the FHIR R4 Bundle.type codes permitted on this platform.
 // Fail closed: only MESSAGE is valid for event transport; consumers must reject
-// any other value, including UNSPECIFIED.
+// any other value, including UNSPECIFIED. The canonical JSON wire form renders
+// the FHIR code "message".
 enum BundleType {
   BUNDLE_TYPE_UNSPECIFIED = 0;
   BUNDLE_TYPE_MESSAGE = 1;
@@ -43,11 +64,11 @@ message BundleEntry {
 }
 
 // FhirMessageBundle is the pragmatic, FHIR R4-aligned message Bundle carried by
-// every envelope. resource_type is fixed to "Bundle" and type to
-// BUNDLE_TYPE_MESSAGE; producers must not emit and consumers must reject any
-// other combination (fail closed). The first entry is the primary event
-// resource for the topic; subsequent entries are supporting resources
-// referenced by full_url.
+// every envelope under the canonical "fhir" key. resource_type is fixed to
+// "Bundle" and type to BUNDLE_TYPE_MESSAGE; producers must not emit and
+// consumers must reject any other combination (fail closed). The first entry is
+// the primary event resource for the topic; subsequent entries are supporting
+// resources referenced by full_url.
 message FhirMessageBundle {
   // Fixed FHIR resourceType discriminator. Must be "Bundle".
   string resource_type = 1;
@@ -66,9 +87,19 @@ message EventProvenance {
   string principal_id = 1;
   // Keycloak realm/client role reference of the principal at emission time.
   string principal_role = 2;
-  // Detached signature over the canonical envelope serialisation, verifiable
-  // against the producer's published key. The signing key itself is never
-  // carried in the event.
+  // Fleet provenance signature: a JWS compact serialization (RFC 7515) using
+  // EdDSA over Ed25519, computed over the JCS-canonicalized (RFC 8785) JSON of
+  // the full envelope excluding this signature field. The JWS payload segment
+  // carries exactly those canonical bytes, so the field is self-verifying.
+  // The protected header is exactly {"alg":"EdDSA","kid":"<producer>-<epoch>"}
+  // where <producer> is the producing deployable name and <epoch> is the
+  // producer's key-rotation epoch. Consumers resolve the signing key from the
+  // mounted public-key directory (a JSON object shaped
+  // {kid: base64url-ed25519-pubkey}, path from the KEY_DIRECTORY_PATH
+  // environment variable), must load it fail-closed at startup, and must
+  // reject envelopes with an unknown kid, a malformed compact serialization,
+  // a payload that does not byte-match the canonical envelope, or an invalid
+  // signature. See docs/envelope-signature.md.
   string signature = 3;
   // Hash of the ledger commit under which this event was anchored. Empty until
   // the commit is recorded; reconciliation uses the AuditCommitRecorded event.
@@ -77,11 +108,15 @@ message EventProvenance {
 
 // EventEnvelope is the single integration backbone carried on every platform
 // Kafka topic (ports.*, ferries.*, cvff.*). Every domain event is transported
-// as the primary resource of the embedded FHIR-aligned message Bundle.
-// Consumers must validate envelope_version, type, classification and signature
-// before unpacking entry resources, and must fail closed on any violation.
+// as the primary resource of the embedded FHIR-aligned message Bundle. The
+// canonical JSON wire form uses camelCase keys ("envelopeVersion", "eventId",
+// "fhir", "provenance", "classification", ...) exactly as governed by the
+// platform event-envelope JSON Schema. Consumers must validate
+// envelope_version, type, classification and the provenance signature before
+// unpacking entry resources, and must fail closed on any violation.
 message EventEnvelope {
-  // Semantic version of this envelope contract, for example "1.0.0".
+  // Version of this envelope contract. The only supported value is "1.0";
+  // consumers must reject any other value (fail closed).
   string envelope_version = 1;
   // Globally unique immutable event identifier created by the producer.
   string event_id = 2;
@@ -93,7 +128,12 @@ message EventEnvelope {
   string producer = 5;
   // Correlation identifier propagated across API, event and workflow boundaries.
   string correlation_id = 6;
-  FhirMessageBundle bundle = 7;
+  // The FHIR R4-aligned message Bundle. Carried under the canonical "fhir"
+  // wire key; the legacy "bundle" key is retired and consumers must reject it.
+  FhirMessageBundle fhir = 7;
   EventProvenance provenance = 8;
   EnvelopeClassification classification = 9;
+  // Optional per-record clearance label persisted by classified-scope
+  // consumers for row-level filtering; mandatory for classified scopes.
+  ClearanceLabel record_classification = 10;
 }
