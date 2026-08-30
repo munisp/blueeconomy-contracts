@@ -1,0 +1,293 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Phase 8: blue-carbon registry events (bluecarbon.projects,
+// bluecarbon.evidence, bluecarbon.verifications, bluecarbon.credit-blocks,
+// bluecarbon.ledger and bluecarbon.retirements topics). Each message is a
+// domain resource transported as the primary resource of an EventEnvelope
+// FHIR message Bundle; the FHIR R4 projection profiles (Location+Provenance
+// for projects, DocumentReference for evidence, Contract/Provenance for
+// credit blocks) are documented in docs/bluecarbon-registry.md. The registry
+// never computes carbon from built-in defaults: all quantification inputs
+// arrive inside submitted monitoring reports attributable to a cited
+// methodology, and events carry references and digests only. Credit serial
+// numbers follow the Article 6.4-aligned grammar defined in
+// docs/bluecarbon-registry.md; quantities are fixed-point integers.
+// Classification: evidence and verification events are CONFIDENTIAL; the
+// remaining families are INTERNAL, with PUBLIC projections produced only by
+// the governed gold export. See docs/bluecarbon-registry.md.
+
+// BlueCarbonEcosystem is the fail-closed ecosystem taxonomy of a blue-carbon
+// project.
+enum BlueCarbonEcosystem {
+  BLUE_CARBON_ECOSYSTEM_UNSPECIFIED = 0;
+  BLUE_CARBON_ECOSYSTEM_MANGROVE = 1;
+  BLUE_CARBON_ECOSYSTEM_SEAGRASS = 2;
+  BLUE_CARBON_ECOSYSTEM_TIDAL_MARSH = 3;
+  BLUE_CARBON_ECOSYSTEM_MIXED = 4;
+}
+
+// BlueCarbonActivity is the fail-closed activity class of a blue-carbon
+// project.
+enum BlueCarbonActivity {
+  BLUE_CARBON_ACTIVITY_UNSPECIFIED = 0;
+  BLUE_CARBON_ACTIVITY_RESTORATION = 1;
+  BLUE_CARBON_ACTIVITY_CONSERVATION = 2;
+  BLUE_CARBON_ACTIVITY_MIXED = 3;
+}
+
+// BlueCarbonProjectState is the fail-closed lifecycle state of a project:
+// DRAFT -> SUBMITTED -> VALIDATION -> REGISTERED -> MONITORING; SUSPENDED
+// and DEREGISTERED are fail-closed terminal branches. Consumers must fail
+// closed on UNSPECIFIED.
+enum BlueCarbonProjectState {
+  BLUE_CARBON_PROJECT_STATE_UNSPECIFIED = 0;
+  BLUE_CARBON_PROJECT_STATE_DRAFT = 1;
+  BLUE_CARBON_PROJECT_STATE_SUBMITTED = 2;
+  BLUE_CARBON_PROJECT_STATE_VALIDATION = 3;
+  BLUE_CARBON_PROJECT_STATE_REGISTERED = 4;
+  BLUE_CARBON_PROJECT_STATE_MONITORING = 5;
+  BLUE_CARBON_PROJECT_STATE_SUSPENDED = 6;
+  BLUE_CARBON_PROJECT_STATE_DEREGISTERED = 7;
+}
+
+// BlueCarbonMonitoringReportState is the fail-closed state of a monitoring
+// report: SUBMITTED -> VERIFICATION -> VERIFIED; REJECTED is a fail-closed
+// terminal branch. No issuance without VERIFIED status and a recorded buffer
+// percentage.
+enum BlueCarbonMonitoringReportState {
+  BLUE_CARBON_MONITORING_REPORT_STATE_UNSPECIFIED = 0;
+  BLUE_CARBON_MONITORING_REPORT_STATE_SUBMITTED = 1;
+  BLUE_CARBON_MONITORING_REPORT_STATE_VERIFICATION = 2;
+  BLUE_CARBON_MONITORING_REPORT_STATE_VERIFIED = 3;
+  BLUE_CARBON_MONITORING_REPORT_STATE_REJECTED = 4;
+}
+
+// BlueCarbonVerificationDecision is the fail-closed outcome of a verifier
+// decision on a monitoring report. The decision ledger is immutable.
+enum BlueCarbonVerificationDecision {
+  BLUE_CARBON_VERIFICATION_DECISION_UNSPECIFIED = 0;
+  BLUE_CARBON_VERIFICATION_DECISION_VERIFY = 1;
+  BLUE_CARBON_VERIFICATION_DECISION_REJECT = 2;
+  BLUE_CARBON_VERIFICATION_DECISION_REQUEST_CLARIFICATION = 3;
+}
+
+// BlueCarbonCreditBlockStatus is the fail-closed status of a credit serial
+// block. Retirement is terminal: there is no un-retire.
+enum BlueCarbonCreditBlockStatus {
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_UNSPECIFIED = 0;
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_ACTIVE = 1;
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_TRANSFERRED = 2;
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_RETIRED = 3;
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_CANCELLED = 4;
+  // Pooled non-permanence buffer account holdings.
+  BLUE_CARBON_CREDIT_BLOCK_STATUS_BUFFER = 5;
+}
+
+// BlueCarbonLedgerMovementKind is the fail-closed kind of a credit-ledger
+// movement. The credit ledger is a dedicated namespace; no code path may
+// move credits and currency in one movement.
+enum BlueCarbonLedgerMovementKind {
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_UNSPECIFIED = 0;
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_ISSUANCE = 1;
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_BUFFER_DEPOSIT = 2;
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_TRANSFER = 3;
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_RETIREMENT = 4;
+  BLUE_CARBON_LEDGER_MOVEMENT_KIND_CANCELLATION = 5;
+}
+
+// BlueCarbonAuthorization is the fail-closed Article 6 authorization
+// designation of a credit block, aligned with the Article 6.4 mechanism
+// registry procedure (A6.4-SBM015-A12): AERs (authorized units) are
+// distinguished from MCUs (mitigation contribution units).
+enum BlueCarbonAuthorization {
+  BLUE_CARBON_AUTHORIZATION_UNSPECIFIED = 0;
+  // Authorized for use towards NDC achievement (AER, authorization "N").
+  BLUE_CARBON_AUTHORIZATION_AER_NDC = 1;
+  // Authorized for international mitigation purposes (AER, authorization
+  // "I").
+  BLUE_CARBON_AUTHORIZATION_AER_OIMP = 2;
+  // Authorized for other purposes (AER, authorization "O").
+  BLUE_CARBON_AUTHORIZATION_AER_OTHER = 3;
+  // Mitigation contribution unit (MCU): not authorized for NDC/OIMP use; no
+  // corresponding adjustment is committed.
+  BLUE_CARBON_AUTHORIZATION_MCU = 4;
+}
+
+// BlueCarbonProjectStateChanged records a lifecycle transition of a
+// blue-carbon project (event type bluecarbon.project.v1, topic
+// bluecarbon.projects; FHIR projection: Location for the project boundary
+// plus Provenance for the registration act). Strata polygons are validated
+// WGS84 GeoJSON inside the producing boundary; the event carries their
+// digest, not the geometry.
+message BlueCarbonProjectStateChanged {
+  // Service-assigned immutable project identifier.
+  string project_id = 1;
+  // Intake idempotency reference; conflicting reuse fails closed.
+  string external_reference = 2;
+  BlueCarbonProjectState prior_state = 3;
+  BlueCarbonProjectState state = 4;
+  BlueCarbonEcosystem ecosystem = 5;
+  BlueCarbonActivity activity = 6;
+  // Stable methodology code from the operator-approved registry policy (for
+  // example "VERRA_VM0033_V2.1"); free-text methodologies are prohibited by
+  // policy, and the system fails closed without an approved policy.
+  string methodology_code = 7;
+  // Project area in milli-hectares (hectares scaled by 1e3). Fixed-point
+  // only.
+  uint64 area_ha_milli = 8;
+  // Digest of the validated strata GeoJSON document
+  // ("sha256:<64 lowercase hex>"); geometry is not carried in the event.
+  string strata_digest_sha256 = 9;
+  // External registry linkage (for example Verra/GS) for double-counting
+  // control: recorded, never asserted as verified. Empty when none.
+  string external_registry_code = 10;
+  string external_project_reference = 11;
+  google.protobuf.Timestamp transitioned_at = 12;
+}
+
+// BlueCarbonEvidenceSubmitted records a dMRV monitoring report submission
+// (event type bluecarbon.evidence.v1, topic bluecarbon.evidence; FHIR
+// projection: DocumentReference with sha256 per evidence artifact). Evidence
+// artifacts (soil cores, biomass plots, satellite scene identifiers, sensor
+// feeds) stay inside the producing boundary; the event carries per-artifact
+// digests only.
+message BlueCarbonEvidenceSubmitted {
+  // Service-assigned immutable monitoring-report identifier.
+  string report_id = 1;
+  string project_id = 2;
+  google.protobuf.Timestamp period_from = 3;
+  google.protobuf.Timestamp period_to = 4;
+  // Claimed emission reductions/removals in milli-tCO2e (tCO2e scaled by
+  // 1e3), as submitted and attributable to the cited methodology. The
+  // registry records and checks arithmetic; it never computes carbon from
+  // built-in defaults.
+  uint64 claimed_tco2e_milli = 5;
+  // Per-artifact digests ("sha256:<64 lowercase hex>"), one per evidence
+  // item; every artifact is hash-bound.
+  repeated string evidence_digest_sha256 = 6;
+  // Methodology code the quantification is attributable to.
+  string methodology_code = 7;
+  BlueCarbonMonitoringReportState state = 8;
+  google.protobuf.Timestamp submitted_at = 9;
+}
+
+// BlueCarbonVerificationRecorded records an immutable verifier decision on a
+// monitoring report (event type bluecarbon.verification.v1, topic
+// bluecarbon.verifications; FHIR projection: Provenance). The buffer
+// percentage comes from the methodology's risk-tool output, entered under
+// dual control; the system validates bounds but does not compute risk.
+message BlueCarbonVerificationRecorded {
+  // Service-assigned immutable verification identifier.
+  string verification_id = 1;
+  // Monitoring report this decision applies to.
+  string report_id = 2;
+  string project_id = 3;
+  BlueCarbonVerificationDecision decision = 4;
+  // Verifier-adjusted quantity in milli-tCO2e; present on VERIFY.
+  optional uint64 verified_tco2e_milli = 5;
+  // Non-permanence buffer percentage in milli-percent (percent scaled by
+  // 1e3; 0..100000), from the methodology risk-tool output.
+  uint32 buffer_pct_milli = 6;
+  // Stable machine-readable reason code; mandatory when decision is not
+  // VERIFY.
+  string reason_code = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+// BlueCarbonCreditBlockIssued records the issuance of a credit serial block
+// (event type bluecarbon.credit-block.v1, topic bluecarbon.credit-blocks;
+// FHIR projection: Contract for the block plus Provenance for the issuance).
+// Issuance requires a VERIFIED monitoring report and a recorded buffer
+// percentage at the producing boundary. The serial grammar is defined in
+// docs/bluecarbon-registry.md and is aligned with UNFCCC Article 6 guidance
+// (Decision 5/CMA.4; Decision 6/CMA.4 annex I paragraph 5) and CAD Trust
+// fields.
+message BlueCarbonCreditBlockIssued {
+  // Service-assigned immutable block identifier.
+  string block_id = 1;
+  // Credit serial number per the Article 6.4-aligned grammar in
+  // docs/bluecarbon-registry.md, for example
+  // "NG-BCR-0007-VERRA_VM0033_V2_1-2025-1-3000". Consumers must fail closed
+  // on a serial that does not match the grammar.
+  string serial = 2;
+  string project_id = 3;
+  // The VERIFIED monitoring report the issuance is based on.
+  string report_id = 4;
+  // Vintage year: the year the emission reductions or removals occurred.
+  uint32 vintage_year = 5;
+  // First unit serial number of the block (1-based).
+  uint64 block_start = 6;
+  // Last unit serial number of the block; block_end >= block_start.
+  uint64 block_end = 7;
+  // Quantity in milli-tCO2e (tCO2e scaled by 1e3); equals
+  // (block_end - block_start + 1) whole credits. Fixed-point only.
+  uint64 quantity_tco2e_milli = 8;
+  // Tokenized ledger account reference of the holder (hex); account secrets
+  // are never carried.
+  string holder_account_reference = 9;
+  BlueCarbonCreditBlockStatus status = 10;
+  BlueCarbonAuthorization authorization = 11;
+  // Article 6 bookkeeping: true when the block is subject to a host-Party
+  // corresponding adjustment.
+  bool corresponding_adjustment = 12;
+  // True when the block has been first transferred (Article 6.4 "FT"
+  // designation) at the time of the event.
+  bool first_transferred = 13;
+  google.protobuf.Timestamp issued_at = 14;
+}
+
+// BlueCarbonLedgerMovementPosted records an immutable credit-ledger movement
+// (event type bluecarbon.ledger-movement.v1, topic bluecarbon.ledger).
+// Partial-block splits follow the UNDP/Article 6 rule: the current owner
+// retains the first sub-block and the transferee receives the last
+// sub-block. Retirement movements are posted, never voided.
+message BlueCarbonLedgerMovementPosted {
+  // Service-assigned immutable movement identifier.
+  string movement_id = 1;
+  // Control-intent reference binding the movement to its maker-checker
+  // control record; idempotency reference inside the producing boundary.
+  string intent_reference = 2;
+  BlueCarbonLedgerMovementKind kind = 3;
+  // Serial(s) of the affected block(s) after any split.
+  repeated string serial = 4;
+  // Tokenized debit and credit account references (hex).
+  string debit_account_reference = 5;
+  string credit_account_reference = 6;
+  // Quantity moved in kgCO2e (1 credit = 1000 kgCO2e). Integer only.
+  uint64 amount_kg_co2e = 7;
+  // Digest of the posted ledger transfer record
+  // ("sha256:<64 lowercase hex>").
+  string transfer_digest_sha256 = 8;
+  google.protobuf.Timestamp posted_at = 9;
+}
+
+// BlueCarbonRetirementRecorded records a permanent retirement (event type
+// bluecarbon.retirement.v1, topic bluecarbon.retirements; INTERNAL on the
+// bus with a PUBLIC projection produced only by the governed gold export).
+// Retirement is terminal. The artifact digest binds the signed retirement
+// certificate retained inside the producing boundary.
+message BlueCarbonRetirementRecorded {
+  // Service-assigned immutable retirement identifier.
+  string retirement_id = 1;
+  string block_id = 2;
+  // Serial of the retired block (after any split).
+  string serial = 3;
+  // Quantity retired in kgCO2e. Integer only.
+  uint64 quantity_kg_co2e = 4;
+  // Retirement beneficiary name or organization (public-transparency field;
+  // no personal data beyond what the beneficiary consented to publish).
+  string beneficiary = 5;
+  // Stable machine-readable purpose code (for example
+  // "VOLUNTARY_OFFSET_CLAIM").
+  string purpose_code = 6;
+  // Digest of the signed retirement certificate artifact
+  // ("sha256:<64 lowercase hex>").
+  string artifact_digest_sha256 = 7;
+  google.protobuf.Timestamp retired_at = 8;
+}

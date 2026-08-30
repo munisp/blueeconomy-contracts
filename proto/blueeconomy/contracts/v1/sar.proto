@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/isr.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Phase 8: search and rescue command-and-control (maritime.sar.v1 topic).
+// Each message is a domain resource transported as the primary resource of an
+// EventEnvelope FHIR message Bundle. The lifecycle is IAMSAR-informed:
+// emergency phases INCERFA/ALERFA/DETRESFA and case stages
+// AWARENESS/INITIAL_ACTION/COORDINATION/STAND_DOWN. SAR cases are anchored to
+// maritime incident records (category SAR) inside the producing boundary;
+// events carry case references, enum-governed state and digests only — no
+// free-typed untracked operational text, no personal data of persons at risk.
+// Envelope classification follows the case classification and is never
+// widened; SOS-sourced cases floor at RESTRICTED. See docs/sar-events.md.
+
+// SarEmergencyPhase is the fail-closed IAMSAR emergency phase declared for a
+// SAR case. Phases are declared, escalated and de-escalated with recorded
+// rationale. The canonical JSON wire form renders these values without the
+// SAR_EMERGENCY_PHASE_ prefix (for example SAR_EMERGENCY_PHASE_DETRESFA
+// renders as "DETRESFA"); consumers must fail closed on any other value.
+enum SarEmergencyPhase {
+  SAR_EMERGENCY_PHASE_UNSPECIFIED = 0;
+  // Uncertainty phase: doubt exists as to the safety of a vessel or persons.
+  SAR_EMERGENCY_PHASE_INCERFA = 1;
+  // Alert phase: concern exists; further action or investigation required.
+  SAR_EMERGENCY_PHASE_ALERFA = 2;
+  // Distress phase: reasonable certainty of grave and imminent danger
+  // requiring immediate assistance.
+  SAR_EMERGENCY_PHASE_DETRESFA = 3;
+}
+
+// SarCaseStage is the fail-closed lifecycle stage of a SAR case. Legal
+// forward transitions: AWARENESS -> INITIAL_ACTION -> COORDINATION ->
+// STAND_DOWN; STAND_DOWN is terminal and requires a SarStandDownReason on
+// closure. Consumers must fail closed on UNSPECIFIED.
+enum SarCaseStage {
+  SAR_CASE_STAGE_UNSPECIFIED = 0;
+  SAR_CASE_STAGE_AWARENESS = 1;
+  SAR_CASE_STAGE_INITIAL_ACTION = 2;
+  SAR_CASE_STAGE_COORDINATION = 3;
+  SAR_CASE_STAGE_STAND_DOWN = 4;
+}
+
+// SarStandDownReason is the fail-closed reason a SAR case was stood down.
+// No SAR outcome is asserted without record: the reason is an
+// operator-recorded fact attributed to a principal.
+enum SarStandDownReason {
+  SAR_STAND_DOWN_REASON_UNSPECIFIED = 0;
+  SAR_STAND_DOWN_REASON_RESOLVED = 1;
+  SAR_STAND_DOWN_REASON_SUSPENDED = 2;
+  SAR_STAND_DOWN_REASON_FALSE_ALERT = 3;
+  // Case handed over to an external authority (for example an MMCC via the
+  // Yaounde gateway); the console records the fact, it does not claim
+  // delivery the gateway has not acknowledged.
+  SAR_STAND_DOWN_REASON_HANDED_OVER = 4;
+}
+
+// SarIntakeKind is the fail-closed origin of a SAR case. Exactly one origin
+// is recorded per case.
+enum SarIntakeKind {
+  SAR_INTAKE_KIND_UNSPECIFIED = 0;
+  // Safety-relevant waterway telemetry event admitted via signed feed
+  // admission (ferries.telemetry.v1).
+  SAR_INTAKE_KIND_WATERWAY_EVENT = 1;
+  // geo-service SOS alert (geo.sos.v1); classification floor RESTRICTED.
+  SAR_INTAKE_KIND_GEO_SOS = 2;
+  // Watchkeeper-entered report (phone/VHF/third-party) with attribution.
+  SAR_INTAKE_KIND_MANUAL = 3;
+}
+
+// SarResourceKind is the fail-closed kind of a search and rescue unit (SRU).
+enum SarResourceKind {
+  SAR_RESOURCE_KIND_UNSPECIFIED = 0;
+  SAR_RESOURCE_KIND_VESSEL = 1;
+  SAR_RESOURCE_KIND_AIRCRAFT = 2;
+  SAR_RESOURCE_KIND_TEAM = 3;
+  // Vessel of opportunity identified from live tracks.
+  SAR_RESOURCE_KIND_VOO = 4;
+}
+
+// SarTaskingState is the fail-closed lifecycle state of a tasking order:
+// PROPOSED -> TASKED -> ACKED -> ON_SCENE -> RELEASED; ABORTED is a
+// fail-closed terminal branch from TASKED or ACKED. Consumers must fail
+// closed on UNSPECIFIED.
+enum SarTaskingState {
+  SAR_TASKING_STATE_UNSPECIFIED = 0;
+  SAR_TASKING_STATE_PROPOSED = 1;
+  SAR_TASKING_STATE_TASKED = 2;
+  SAR_TASKING_STATE_ACKED = 3;
+  SAR_TASKING_STATE_ON_SCENE = 4;
+  SAR_TASKING_STATE_RELEASED = 5;
+  SAR_TASKING_STATE_ABORTED = 6;
+}
+
+// SarCaseOpened records the opening of a SAR case (event type
+// maritime.sar.case_opened.v1) anchored to a maritime incident record of
+// category SAR inside the producing boundary.
+message SarCaseOpened {
+  // Service-assigned immutable case identifier.
+  string case_id = 1;
+  // Reference to the anchored maritime incident record (category SAR).
+  string incident_reference = 2;
+  SarIntakeKind intake_kind = 3;
+  // Intake source reference: the admitted feed source/event reference, the
+  // geo sos_alert_id, or the attributed operator reference for manual intake.
+  string source_reference = 4;
+  SarEmergencyPhase phase = 5;
+  // Always SAR_CASE_STAGE_AWARENESS at opening.
+  SarCaseStage stage = 6;
+  // Case classification; floors at RESTRICTED for GEO_SOS intake and is
+  // never widened. Mandatory: UNSPECIFIED is invalid on the wire.
+  SecurityClassification classification = 7;
+  // Number of persons at risk when recorded; absent when unknown. Zero is a
+  // recorded fact, not a default.
+  optional uint32 persons_at_risk = 8;
+  // Last known position in fixed-point micro-degrees (degrees scaled by
+  // 1e6). Absent when no position was reported. Fixed-point only;
+  // floating-point coordinates are prohibited.
+  optional int32 last_known_latitude_micros = 9;
+  optional int32 last_known_longitude_micros = 10;
+  optional google.protobuf.Timestamp last_known_at = 11;
+  google.protobuf.Timestamp opened_at = 12;
+}
+
+// SarPhaseChanged records the declaration, escalation or de-escalation of the
+// IAMSAR emergency phase of a SAR case (event type
+// maritime.sar.phase_changed.v1). Every change carries an attributed
+// rationale digest; the rationale text is retained inside the producing
+// boundary.
+message SarPhaseChanged {
+  string case_id = 1;
+  SarEmergencyPhase prior_phase = 2;
+  SarEmergencyPhase phase = 3;
+  // Digest of the recorded rationale ("sha256:<64 lowercase hex>"); raw
+  // rationale text is not carried in the event.
+  string rationale_digest_sha256 = 4;
+  google.protobuf.Timestamp changed_at = 5;
+}
+
+// SarStageChanged records a lifecycle stage transition of a SAR case (event
+// type maritime.sar.stage_changed.v1). Version-checked at the producing
+// boundary; illegal transitions are refused before any event is emitted.
+message SarStageChanged {
+  string case_id = 1;
+  SarCaseStage prior_stage = 2;
+  SarCaseStage stage = 3;
+  // Stable machine-readable reason code for the transition.
+  string transition_reason_code = 4;
+  // Digest of the stage-transition record ("sha256:<64 lowercase hex>").
+  string transition_digest_sha256 = 5;
+  google.protobuf.Timestamp changed_at = 6;
+}
+
+// SarTaskingChanged records a state change of a tasking order assigning an
+// SRU to a SAR case (event type maritime.sar.tasking_changed.v1). Briefing
+// content (search area, pattern, comms plan) stays inside the producing
+// boundary; the event carries its digest.
+message SarTaskingChanged {
+  string tasking_id = 1;
+  string case_id = 2;
+  // Tokenized SRU reference held by the resource registry.
+  string resource_reference = 3;
+  SarResourceKind resource_kind = 4;
+  SarTaskingState prior_state = 5;
+  SarTaskingState state = 6;
+  // Stable machine-readable task code (for example "SEARCH_PATTERN",
+  // "INVESTIGATE", "RESCUE", "RELAY").
+  string task_code = 7;
+  // Digest of the IAMSAR briefing record ("sha256:<64 lowercase hex>"); the
+  // briefing content is not carried in the event.
+  string briefing_digest_sha256 = 8;
+  google.protobuf.Timestamp changed_at = 9;
+}
+
+// SarSitrepIssued records the issue of a numbered, immutable situation report
+// (event type maritime.sar.sitrep_issued.v1). SITREPs are generated from
+// retained case state, never free-typed untracked text; the issued SITREP
+// body is an envelope-v1.0-signed artifact retained inside the producing
+// boundary. Corrections are issued as a new SITREP number; an issued SITREP
+// is never edited.
+message SarSitrepIssued {
+  string sitrep_id = 1;
+  string case_id = 2;
+  // Monotonic per-case SITREP number, starting at 1.
+  uint32 sequence = 3;
+  // Digest of the canonical SITREP body ("sha256:<64 lowercase hex>").
+  string body_digest_sha256 = 4;
+  // Digest of the envelope v1.0 JWS sealing the SITREP body; the sealed
+  // artifact is retained inside the producing boundary.
+  string envelope_digest_sha256 = 5;
+  google.protobuf.Timestamp issued_at = 6;
+}
+
+// SarCaseClosed records the stand-down and closure of a SAR case (event type
+// maritime.sar.case_closed.v1). The stand-down reason is an operator-recorded
+// fact; persons-recovered and handover details are attributed facts recorded
+// inside the producing boundary, referenced here by digest.
+message SarCaseClosed {
+  string case_id = 1;
+  // Reference to the anchored maritime incident record (category SAR).
+  string incident_reference = 2;
+  SarStandDownReason stand_down_reason = 3;
+  // Number of persons recovered when recorded; absent when not recorded.
+  // Never asserted without a record.
+  optional uint32 persons_recovered = 4;
+  // Tokenized reference of the receiving authority when
+  // stand_down_reason is HANDED_OVER; empty otherwise.
+  string handover_reference = 5;
+  // Digest of the closure/debrief record ("sha256:<64 lowercase hex>"); raw
+  // records are not carried in the event.
+  string closure_digest_sha256 = 6;
+  google.protobuf.Timestamp closed_at = 7;
+}
