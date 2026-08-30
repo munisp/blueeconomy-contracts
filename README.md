@@ -8,7 +8,7 @@ The contracts define the platform event envelope, the FHIR-aligned domain contra
 
 ## Layout
 
-All contracts live under `proto/blueeconomy/contracts/v1/` in the `blueeconomy.contracts.v1` package.
+Event contracts live under `proto/blueeconomy/contracts/v1/` in the `blueeconomy.contracts.v1` package, except the Phase-9 Maritime Single Window contracts, which live under `proto/blueeconomy/msw/v1/` in the `blueeconomy.msw.v1` package.
 
 | File | Purpose |
 | --- | --- |
@@ -26,6 +26,7 @@ All contracts live under `proto/blueeconomy/contracts/v1/` in the `blueeconomy.c
 | `mrv.proto` | Phase 8: per-vessel emissions MRV — IMO DCS fuel reports, EU-MRV voyage ledger, verification decisions, annual reports, Statements of Compliance, AIS activity cross-checks (`mrv.*` topics; `docs/mrv-events.md`). |
 | `bluecarbon.proto` | Phase 8: blue-carbon registry — projects, dMRV evidence, verifications, Article 6.4-aligned credit serial blocks, ledger movements, retirements (`bluecarbon.*` topics; `docs/bluecarbon-registry.md`). |
 | `welfare.proto` | Phase 8: seafarer welfare / MLC 2006 — complaint intake/transitions, provider referrals, rest-hour breach flags (`seafarers.welfare.v1`; `docs/seafarer-welfare-events.md`). |
+| `msw/v1/msw.proto` (`blueeconomy.msw.v1`) | Phase 9: IMO FAL Maritime Single Window ship clearance — FAL 1–7 + MDOH declarations, Port Health pratique-first ordering (NPPM 2021), joint boarding, arrival/departure clearance (`maritime.msw.v1`; `docs/msw.md`). |
 | `common.proto` | Shared metadata, classification, severity/validation enums and integer `Money`. |
 | `audit.proto` | Immutable security/audit event boundary. |
 | `evidence.proto`, `safety.proto`, `mobile_observation.proto` | Evidence, waterway-safety and field-observation event boundaries. |
@@ -64,6 +65,7 @@ Domain messages are *resources*, not standalone envelopes: they are transported 
 - **MRV emissions (`mrv.proto`, `mrv.*`)** — `MrvFuelReportRecorded` (IMO DCS consumer split, ISO 8217 grade key, EU-MRV method `A`/`B`/`C`/`D`, fixed-point milli-tonnes) → `MrvVoyageRecorded` (BOSP/EOSP ledger, enum source `OPERATOR`/`AIS_DERIVED`/`RECONCILED`) → `MrvVerificationRecorded` (immutable enum decision) → `MrvEmissionsAnnualReportSubmitted` (factor-set digest; CII fields absent when NOT_COMPUTABLE) → `MrvStatementOfComplianceIssued` (only from VERIFIED reports; artifact digest = `ledger_commit_hash`) → `MrvActivityEstimateComputed` (AIS cross-check, never an overwrite). FHIR profiles in `docs/mrv-events.md`.
 - **Blue-carbon registry (`bluecarbon.proto`, `bluecarbon.*`)** — `BlueCarbonProjectStateChanged` → `BlueCarbonEvidenceSubmitted` (per-artifact sha256 digests) → `BlueCarbonVerificationRecorded` (dual-control buffer percentage) → `BlueCarbonCreditBlockIssued` (Article 6.4-aligned serial grammar per `docs/bluecarbon-registry.md`; structured `authorization`/`corresponding_adjustment`/`first_transferred` fields) → `BlueCarbonLedgerMovementPosted` (partial-block split: owner retains first sub-block) → `BlueCarbonRetirementRecorded` (terminal); see `docs/bluecarbon-registry.md`.
 - **Seafarer welfare / MLC 2006 (`welfare.proto`, `seafarers.welfare.v1`)** — `WelfareComplaintSubmitted` (channels `ONBOARD_R515`/`FLAGSTATE_R522`, enum category, right-to-redress ack mandatory) → `WelfareComplaintStatusTransitioned` (maker-checker; identity disclosures emitted with `disclosure_event=true`) → `WelfareReferralRecorded` (consent mandatory) → `RestHoursBreachFlagged` (derived, policy-versioned Reg 2.3 flags). All envelopes `CONFIDENTIAL`; see `docs/seafarer-welfare-events.md`.
+- **Maritime Single Window / IMO FAL (`msw/v1/msw.proto`, package `blueeconomy.msw.v1`, `maritime.msw.v1`)** — FAL.14(46) single-window ship clearance: `MswAgentNominated` → `MswVisitCreated` (port-call anchor by `port_call_id` only; unlinked visits honestly flagged `port_call_verified=false`) → `MswDeclarationSubmitted` (enum `MswFormType` FAL1–FAL7/MDOH, versioned single-submission hash chain, payload digest only) → `MswDeclarationAccepted`/`MswDeclarationReturned` (authority maker-checker) → `MswPratiqueGranted`/`MswPratiqueRefused` (Port Health only; the NPPM 2021 ordering pivot) → `MswBoardingScheduled`/`MswBoardingCompleted` (closed `MswAgency` set; non-Port-Health parties bound to the pratique grant by digest) → `MswClearanceGranted`/`MswClearanceRefused` (DEPARTURE binds the precondition-checklist digest). Personal-data declarations floor at envelope `RESTRICTED` (NDPA PERSONAL category); boarding and clearance events floor at `CONFIDENTIAL`; see `docs/msw.md`.
 
 ## Data minimization and fail-closed rules
 
