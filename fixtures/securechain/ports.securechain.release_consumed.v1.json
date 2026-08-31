@@ -1,0 +1,41 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "8fc05c85-a210-40f3-8ab4-e4be56c40397",
+  "eventType": "release_consumed",
+  "occurredAt": "2026-08-31T12:07:00Z",
+  "producer": "s1-port-interoperability",
+  "correlationId": "3f6b2b1e-7c2a-4f5d-9a1c-2e4d6b8a0c12",
+  "classification": "INTERNAL",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "timestamp": "2026-08-31T12:07:00Z",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:314e0b41-d1e9-4cf6-a3a8-b53259da95c6",
+        "resource": {
+          "resourceType": "Basic",
+          "id": "MSCU1234567",
+          "code": {
+            "text": "release_consumed"
+          },
+          "extension": [
+            {
+              "url": "https://blueeconomy.gov.ng/fhir/StructureDefinition/domain-payload",
+              "valueString": "{\"chain_id\":\"3f6b2b1e-7c2a-4f5d-9a1c-2e4d6b8a0c12\",\"gate_id\":\"GATE-1\",\"holder_org\":\"forwarder-ng\",\"nonce\":\"a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2\"}"
+            },
+            {
+              "url": "https://blueeconomy.gov.ng/fhir/StructureDefinition/container",
+              "valueString": "MSCU1234567"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "line-ng",
+    "principalRole": "shipping-line",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6InBvcnQtaW50ZXJvcGVyYWJpbGl0eS0xIn0.eyJjbGFzc2lmaWNhdGlvbiI6IklOVEVSTkFMIiwiY29ycmVsYXRpb25JZCI6IjNmNmIyYjFlLTdjMmEtNGY1ZC05YTFjLTJlNGQ2YjhhMGMxMiIsImVudmVsb3BlVmVyc2lvbiI6IjEuMCIsImV2ZW50SWQiOiI4ZmMwNWM4NS1hMjEwLTQwZjMtOGFiNC1lNGJlNTZjNDAzOTciLCJldmVudFR5cGUiOiJyZWxlYXNlX2NvbnN1bWVkIiwiZmhpciI6eyJlbnRyeSI6W3siZnVsbFVybCI6InVybjp1dWlkOjMxNGUwYjQxLWQxZTktNGNmNi1hM2E4LWI1MzI1OWRhOTVjNiIsInJlc291cmNlIjp7ImNvZGUiOnsidGV4dCI6InJlbGVhc2VfY29uc3VtZWQifSwiZXh0ZW5zaW9uIjpbeyJ1cmwiOiJodHRwczovL2JsdWVlY29ub215Lmdvdi5uZy9maGlyL1N0cnVjdHVyZURlZmluaXRpb24vZG9tYWluLXBheWxvYWQiLCJ2YWx1ZVN0cmluZyI6IntcImNoYWluX2lkXCI6XCIzZjZiMmIxZS03YzJhLTRmNWQtOWExYy0yZTRkNmI4YTBjMTJcIixcImdhdGVfaWRcIjpcIkdBVEUtMVwiLFwiaG9sZGVyX29yZ1wiOlwiZm9yd2FyZGVyLW5nXCIsXCJub25jZVwiOlwiYTFiMmMzZDRlNWY2MDcxODI5M2E0YjVjNmQ3ZThmOTBhMWIyYzNkNGU1ZjYwNzE4MjkzYTRiNWM2ZDdlOGY5MGExYjJcIn0ifSx7InVybCI6Imh0dHBzOi8vYmx1ZWVjb25vbXkuZ292Lm5nL2ZoaXIvU3RydWN0dXJlRGVmaW5pdGlvbi9jb250YWluZXIiLCJ2YWx1ZVN0cmluZyI6Ik1TQ1UxMjM0NTY3In1dLCJpZCI6Ik1TQ1UxMjM0NTY3IiwicmVzb3VyY2VUeXBlIjoiQmFzaWMifX1dLCJyZXNvdXJjZVR5cGUiOiJCdW5kbGUiLCJ0aW1lc3RhbXAiOiIyMDI2LTA4LTMxVDEyOjA3OjAwWiIsInR5cGUiOiJtZXNzYWdlIn0sIm9jY3VycmVkQXQiOiIyMDI2LTA4LTMxVDEyOjA3OjAwWiIsInByb2R1Y2VyIjoiczEtcG9ydC1pbnRlcm9wZXJhYmlsaXR5IiwicHJvdmVuYW5jZSI6eyJwcmluY2lwYWxJZCI6ImxpbmUtbmciLCJwcmluY2lwYWxSb2xlIjoic2hpcHBpbmctbGluZSJ9fQ.W06G6EKO7cgkYl8kGUv_OO0D-doFVOZNeP2NEZAh8Fzqr10AeT0-U6GAKc_hzJqVr1nk1zCcszpE0SJGaUGxBQ"
+  }
+}
