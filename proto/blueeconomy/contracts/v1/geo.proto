@@ -67,6 +67,10 @@ enum GeofenceTransition {
   GEOFENCE_TRANSITION_UNSPECIFIED = 0;
   GEOFENCE_TRANSITION_ENTER = 1;
   GEOFENCE_TRANSITION_EXIT = 2;
+  // DWELL is emitted once per continuous stay when a vessel remains inside
+  // the fence at or below the fence's dwell speed gate for at least its
+  // dwell threshold (WP-10).
+  GEOFENCE_TRANSITION_DWELL = 3;
 }
 
 // EpfsType is the fail-closed set of electronic position-fixing system type
@@ -202,6 +206,74 @@ message GeofenceEventRecorded {
   // Time the crossing occurred.
   google.protobuf.Timestamp occurred_at = 9;
   GeoClassification classification = 10;
+  // Version of the geofence definition that produced this event (WP-10
+  // versioned fences). Every transition is attributable to the exact fence
+  // version whose geometry detected it; consumers must fail closed on 0.
+  int32 geofence_version = 11;
+}
+
+// TrackPoint is one recorded vessel position inside a track window (WP-10).
+// Fixed-point only; floating-point coordinates are prohibited.
+message TrackPoint {
+  int32 latitude_micros = 1;
+  int32 longitude_micros = 2;
+  // Speed over ground in milli-knots; negative means unknown (never
+  // zero-filled).
+  int32 speed_over_ground_milliknots = 3;
+  google.protobuf.Timestamp observed_at = 4;
+}
+
+// TrackGap is a stretch of a vessel track with no recorded positions longer
+// than the query's gap threshold. Gaps are REPORTED, never filled; consumers
+// must not interpolate across them.
+message TrackGap {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+  int64 duration_seconds = 3;
+  int32 from_latitude_micros = 4;
+  int32 from_longitude_micros = 5;
+  int32 to_latitude_micros = 6;
+  int32 to_longitude_micros = 7;
+}
+
+// VesselTrackWindow is the geo.track-window.v1 resource: the recorded
+// time-windowed track of one vessel plus every detected gap. Points are the
+// recorded positions only — no synthesized or interpolated positions may be
+// added by any intermediary.
+message VesselTrackWindow {
+  // Maritime Mobile Service Identity: exactly 9 decimal digits.
+  string mmsi = 1;
+  google.protobuf.Timestamp window_start = 2;
+  google.protobuf.Timestamp window_end = 3;
+  repeated TrackPoint points = 4;
+  repeated TrackGap gaps = 5;
+  // Gap detection threshold applied by the producer.
+  int64 max_gap_seconds = 6;
+  GeoClassification classification = 7;
+}
+
+// PortApproachEta is the geo.port-approach-eta.v1 resource: the honest
+// distance/recorded-speed ETA heuristic for one vessel approaching a port
+// anchor (WP-10). eta_seconds is negative when no honest estimate exists
+// (vessel not making way or speed unknown); consumers must fail closed.
+message PortApproachEta {
+  string mmsi = 1;
+  // UN/LOCODE of the approached port.
+  string port_code = 2;
+  // Surface distance from the vessel's last recorded position to the port
+  // anchor in metres (equirectangular, <0.5% error at operating ranges).
+  double distance_meters = 3;
+  // Travel time at the recorded speed; negative when no honest ETA exists.
+  int64 eta_seconds = 4;
+  // Recorded speed over ground in knots.
+  double speed_knots = 5;
+  // Confidence label: HIGH (fresh position, credible speed), MEDIUM (position
+  // up to 2h old), LOW (stale position, indicative only).
+  string confidence = 6;
+  // Free-text explanation of the estimate basis or its absence.
+  string explanation = 7;
+  google.protobuf.Timestamp position_observed_at = 8;
+  GeoClassification classification = 9;
 }
 
 // AppPositionReported records a manual position report from the Tier-0 mobile
