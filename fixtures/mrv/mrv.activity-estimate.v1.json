@@ -1,0 +1,38 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-mrv-000006",
+  "eventType": "mrv.activity-estimate.v1",
+  "occurredAt": "2026-08-29T14:00:00Z",
+  "producer": "blueeconomy-geo-service-mrv",
+  "correlationId": "corr-mrv-000006",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-mrv-000006",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:b5cfd91b-c384-5773-9a2b-5996930727c0",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.MrvActivityEstimateComputed",
+          "estimateId": "mrve-000001",
+          "imoNumber": "9074729",
+          "mmsi": "657123400",
+          "periodFrom": "2026-07-01T00:00:00Z",
+          "periodTo": "2026-07-31T23:59:59Z",
+          "distanceNmMilli": "3095000",
+          "hoursUnderwayMinutes": "11040",
+          "insufficientCoverage": false,
+          "inputDigestSha256": "sha256:8ad1bec0e993ee891e9faa2c1619accb49384565a5db14fb16cdde757cf70fdf",
+          "computedAt": "2026-08-10T06:00:00Z"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "mrv-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWdlby1zZXJ2aWNlLW1ydi0wIn0.eyJjbGFzc2lmaWNhdGlvbiI6IklOVEVSTkFMIiwiY29ycmVsYXRpb25JZCI6ImNvcnItbXJ2LTAwMDAwNiIsImVudmVsb3BlVmVyc2lvbiI6IjEuMCIsImV2ZW50SWQiOiJldnQtbXJ2LTAwMDAwNiIsImV2ZW50VHlwZSI6Im1ydi5hY3Rpdml0eS1lc3RpbWF0ZS52MSIsImZoaXIiOnsiYnVuZGxlSWQiOiJiZGwtbXJ2LTAwMDAwNiIsImVudHJ5IjpbeyJmdWxsVXJsIjoidXJuOnV1aWQ6YjVjZmQ5MWItYzM4NC01NzczLTlhMmItNTk5NjkzMDcyN2MwIiwicmVzb3VyY2UiOnsiQHR5cGUiOiJ0eXBlLmdvb2dsZWFwaXMuY29tL2JsdWVlY29ub215LmNvbnRyYWN0cy52MS5NcnZBY3Rpdml0eUVzdGltYXRlQ29tcHV0ZWQiLCJjb21wdXRlZEF0IjoiMjAyNi0wOC0xMFQwNjowMDowMFoiLCJkaXN0YW5jZU5tTWlsbGkiOiIzMDk1MDAwIiwiZXN0aW1hdGVJZCI6Im1ydmUtMDAwMDAxIiwiaG91cnNVbmRlcndheU1pbnV0ZXMiOiIxMTA0MCIsImltb051bWJlciI6IjkwNzQ3MjkiLCJpbnB1dERpZ2VzdFNoYTI1NiI6InNoYTI1Njo4YWQxYmVjMGU5OTNlZTg5MWU5ZmFhMmMxNjE5YWNjYjQ5Mzg0NTY1YTVkYjE0ZmIxNmNkZGU3NTdjZjcwZmRmIiwiaW5zdWZmaWNpZW50Q292ZXJhZ2UiOmZhbHNlLCJtbXNpIjoiNjU3MTIzNDAwIiwicGVyaW9kRnJvbSI6IjIwMjYtMDctMDFUMDA6MDA6MDBaIiwicGVyaW9kVG8iOiIyMDI2LTA3LTMxVDIzOjU5OjU5WiJ9fV0sInJlc291cmNlVHlwZSI6IkJ1bmRsZSIsInR5cGUiOiJtZXNzYWdlIn0sIm9jY3VycmVkQXQiOiIyMDI2LTA4LTI5VDE0OjAwOjAwWiIsInByb2R1Y2VyIjoiYmx1ZWVjb25vbXktZ2VvLXNlcnZpY2UtbXJ2IiwicHJvdmVuYW5jZSI6eyJsZWRnZXJDb21taXRIYXNoIjoiIiwicHJpbmNpcGFsSWQiOiJmNDdhYzEwYi01OGNjLTQzNzItYTU2Ny0wZTAyYjJjM2Q0NzkiLCJwcmluY2lwYWxSb2xlIjoibXJ2LXByb2R1Y2VyIn19.bFBCpbdMcxMmg1gP9QzksbRlAUiFR0UG42VoevXCVSHNUwzTHfuK8SoiFBUwZUosMlTB51mHT3qHkQe3wroOBg"
+  },
+  "classification": "INTERNAL"
+}

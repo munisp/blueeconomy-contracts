@@ -1,0 +1,36 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-tf-000004",
+  "eventType": "tradefinance.application.v1",
+  "occurredAt": "2026-09-02T12:00:00Z",
+  "producer": "financial-controls",
+  "correlationId": "corr-tf-000004",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "entry": [
+      {
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.tradefinance.v1.DisbursementRecorded",
+          "amount": {
+            "currencyCode": "CURRENCY_CODE_NGN",
+            "minorUnits": "2500000000"
+          },
+          "applicationId": "tf-app-000001",
+          "disburseTransferId": "tf-disburse-000001",
+          "disbursedAt": "2026-09-02T12:00:00Z",
+          "internalEventType": "tradefinance.application.disbursed",
+          "reserveTransferId": "tf-reserve-000001",
+          "subjectId": "tf-app-000001"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "compliance-checker-01",
+    "principalRole": "CUSTOMS_COMPLIANCE_OFFICER",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpbmFuY2lhbC1jb250cm9scy13cDYtZml4dHVyZSJ9.eyJjbGFzc2lmaWNhdGlvbiI6IkZJRFVDSUFSWV9TRUdSRUdBVEVEIiwiY29ycmVsYXRpb25JZCI6ImNvcnItdGYtMDAwMDA0IiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC10Zi0wMDAwMDQiLCJldmVudFR5cGUiOiJ0cmFkZWZpbmFuY2UuYXBwbGljYXRpb24udjEiLCJmaGlyIjp7ImVudHJ5IjpbeyJyZXNvdXJjZSI6eyJAdHlwZSI6InR5cGUuZ29vZ2xlYXBpcy5jb20vYmx1ZWVjb25vbXkudHJhZGVmaW5hbmNlLnYxLkRpc2J1cnNlbWVudFJlY29yZGVkIiwiYW1vdW50Ijp7ImN1cnJlbmN5Q29kZSI6IkNVUlJFTkNZX0NPREVfTkdOIiwibWlub3JVbml0cyI6IjI1MDAwMDAwMDAifSwiYXBwbGljYXRpb25JZCI6InRmLWFwcC0wMDAwMDEiLCJkaXNidXJzZVRyYW5zZmVySWQiOiJ0Zi1kaXNidXJzZS0wMDAwMDEiLCJkaXNidXJzZWRBdCI6IjIwMjYtMDktMDJUMTI6MDA6MDBaIiwiaW50ZXJuYWxFdmVudFR5cGUiOiJ0cmFkZWZpbmFuY2UuYXBwbGljYXRpb24uZGlzYnVyc2VkIiwicmVzZXJ2ZVRyYW5zZmVySWQiOiJ0Zi1yZXNlcnZlLTAwMDAwMSIsInN1YmplY3RJZCI6InRmLWFwcC0wMDAwMDEifX1dLCJyZXNvdXJjZVR5cGUiOiJCdW5kbGUiLCJ0eXBlIjoibWVzc2FnZSJ9LCJvY2N1cnJlZEF0IjoiMjAyNi0wOS0wMlQxMjowMDowMFoiLCJwcm9kdWNlciI6ImZpbmFuY2lhbC1jb250cm9scyIsInByb3ZlbmFuY2UiOnsibGVkZ2VyQ29tbWl0SGFzaCI6InNoYTI1Njo5ZjJjMWQyYjRhNGU2ZjgwOTFhMmIzYzRkNWU2ZjcwODE5MmEzYjRjNWQ2ZTdmODA5MWEyYjNjNGQ1ZTZmNzA4IiwicHJpbmNpcGFsSWQiOiJjb21wbGlhbmNlLWNoZWNrZXItMDEiLCJwcmluY2lwYWxSb2xlIjoiQ1VTVE9NU19DT01QTElBTkNFX09GRklDRVIifX0.7QAyW9eKe-jV7a5LiRGulBG8eCukppjrF7Mg985nFNU3o9skCwrVwke7dZ_GBD9mupN_UDcFlTY6dMMFy78XDg",
+    "ledgerCommitHash": "sha256:9f2c1d2b4a4e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708"
+  },
+  "classification": "FIDUCIARY_SEGREGATED"
+}

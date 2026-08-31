@@ -1,0 +1,45 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-geo-000002",
+  "eventType": "geo.vessel-static.v1",
+  "occurredAt": "2025-03-02T09:15:02Z",
+  "producer": "blueeconomy-geo-ingestion",
+  "correlationId": "corr-geo-000002",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-geo-000002",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:8c1d4a2b-3e5f-4a6b-8c7d-2e3f4a5b6c7d",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.VesselStaticReported",
+          "staticReportId": "sta-000001",
+          "mmsi": "657210300",
+          "imo": "9074729",
+          "callsign": "5NAB2",
+          "shipName": "SAMPLE TRADER ONE",
+          "shipTypeCode": 70,
+          "dimensionBowM": 142,
+          "dimensionSternM": 28,
+          "dimensionPortM": 12,
+          "dimensionStarboardM": 11,
+          "draughtMillimetres": 8500,
+          "destination": "LAGOS APAPA",
+          "eta": "2025-03-04T06:00:00Z",
+          "epfsType": "GPS",
+          "observedAt": "2025-03-02T09:14:58Z",
+          "sourceClass": "AIS",
+          "classification": "PUBLIC"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "geo-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWdlby1pbmdlc3Rpb24tMCJ9.eyJjbGFzc2lmaWNhdGlvbiI6IlBVQkxJQyIsImNvcnJlbGF0aW9uSWQiOiJjb3JyLWdlby0wMDAwMDIiLCJlbnZlbG9wZVZlcnNpb24iOiIxLjAiLCJldmVudElkIjoiZXZ0LWdlby0wMDAwMDIiLCJldmVudFR5cGUiOiJnZW8udmVzc2VsLXN0YXRpYy52MSIsImZoaXIiOnsiYnVuZGxlSWQiOiJiZGwtZ2VvLTAwMDAwMiIsImVudHJ5IjpbeyJmdWxsVXJsIjoidXJuOnV1aWQ6OGMxZDRhMmItM2U1Zi00YTZiLThjN2QtMmUzZjRhNWI2YzdkIiwicmVzb3VyY2UiOnsiQHR5cGUiOiJ0eXBlLmdvb2dsZWFwaXMuY29tL2JsdWVlY29ub215LmNvbnRyYWN0cy52MS5WZXNzZWxTdGF0aWNSZXBvcnRlZCIsImNhbGxzaWduIjoiNU5BQjIiLCJjbGFzc2lmaWNhdGlvbiI6IlBVQkxJQyIsImRlc3RpbmF0aW9uIjoiTEFHT1MgQVBBUEEiLCJkaW1lbnNpb25Cb3dNIjoxNDIsImRpbWVuc2lvblBvcnRNIjoxMiwiZGltZW5zaW9uU3RhcmJvYXJkTSI6MTEsImRpbWVuc2lvblN0ZXJuTSI6MjgsImRyYXVnaHRNaWxsaW1ldHJlcyI6ODUwMCwiZXBmc1R5cGUiOiJHUFMiLCJldGEiOiIyMDI1LTAzLTA0VDA2OjAwOjAwWiIsImltbyI6IjkwNzQ3MjkiLCJtbXNpIjoiNjU3MjEwMzAwIiwib2JzZXJ2ZWRBdCI6IjIwMjUtMDMtMDJUMDk6MTQ6NThaIiwic2hpcE5hbWUiOiJTQU1QTEUgVFJBREVSIE9ORSIsInNoaXBUeXBlQ29kZSI6NzAsInNvdXJjZUNsYXNzIjoiQUlTIiwic3RhdGljUmVwb3J0SWQiOiJzdGEtMDAwMDAxIn19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjUtMDMtMDJUMDk6MTU6MDJaIiwicHJvZHVjZXIiOiJibHVlZWNvbm9teS1nZW8taW5nZXN0aW9uIiwicHJvdmVuYW5jZSI6eyJsZWRnZXJDb21taXRIYXNoIjoiIiwicHJpbmNpcGFsSWQiOiJmNDdhYzEwYi01OGNjLTQzNzItYTU2Ny0wZTAyYjJjM2Q0NzkiLCJwcmluY2lwYWxSb2xlIjoiZ2VvLXByb2R1Y2VyIn19.ASjxQ9TmBdLX14DpnQ2doQDUO-Y59Jd5i9DmOmIhfMVu8RTW5PXwsUJV9vjG1CofWQGbuJeBoteuiFMATferCg"
+  },
+  "classification": "PUBLIC"
+}

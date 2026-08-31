@@ -1,0 +1,265 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Phase 8: per-vessel emissions monitoring, reporting and verification (MRV)
+// events (mrv.fuel-reports, mrv.voyages, mrv.verifications,
+// mrv.annual-reports, mrv.soc and mrv.activity-estimates topics). Each
+// message is a domain resource transported as the primary resource of an
+// EventEnvelope FHIR message Bundle; the FHIR R4 projection profiles
+// (Observation for fuel/emission records, DocumentReference for annual
+// reports, Provenance for verification decisions) are documented in
+// docs/mrv-events.md. Quantities are fixed-point integers; floating-point
+// fuel, emission and distance values are prohibited. Emission factors and
+// CII parameters are never carried in events: they live in the
+// source-cited, operator-approved factor registry inside the producing
+// boundary, and events reference the factor-set digest only. MRV data is
+// commercially sensitive: envelope classification is CONFIDENTIAL by
+// default; mrv.soc.v1 and mrv.activity-estimate.v1 are INTERNAL; anonymized
+// flag-state aggregates may be republished PUBLIC only by the governed gold
+// export. See docs/mrv-events.md.
+
+// MrvConsumerType is the fail-closed fuel-consumer split of an IMO DCS
+// (MEPC.385(81) granularity) fuel report. Free-text consumer values are
+// prohibited.
+enum MrvConsumerType {
+  MRV_CONSUMER_TYPE_UNSPECIFIED = 0;
+  MRV_CONSUMER_TYPE_MAIN_ENGINE = 1;
+  MRV_CONSUMER_TYPE_AUX_ENGINE = 2;
+  MRV_CONSUMER_TYPE_BOILER = 3;
+  MRV_CONSUMER_TYPE_INERT_GAS = 4;
+  // Fuel consumed while not under way.
+  MRV_CONSUMER_TYPE_NOT_UNDER_WAY = 5;
+}
+
+// MrvMonitoringMethod is the fail-closed EU MRV Annex I monitoring method
+// asserted for a fuel report. The canonical JSON wire form renders these
+// values without the MRV_MONITORING_METHOD_ prefix (for example
+// MRV_MONITORING_METHOD_A renders as "A"); consumers must fail closed on any
+// other value.
+enum MrvMonitoringMethod {
+  MRV_MONITORING_METHOD_UNSPECIFIED = 0;
+  // Method A: bunker delivery notes.
+  MRV_MONITORING_METHOD_A = 1;
+  // Method B: bunker fuel tank monitoring.
+  MRV_MONITORING_METHOD_B = 2;
+  // Method C: flow meters for applicable combustion processes.
+  MRV_MONITORING_METHOD_C = 3;
+  // Method D: direct CO2 emissions measurement.
+  MRV_MONITORING_METHOD_D = 4;
+}
+
+// MrvVoyageSource is the fail-closed provenance of a voyage ledger record.
+// AIS-derived values are a cross-check, never a silent overwrite of
+// operator-reported values.
+enum MrvVoyageSource {
+  MRV_VOYAGE_SOURCE_UNSPECIFIED = 0;
+  MRV_VOYAGE_SOURCE_OPERATOR = 1;
+  MRV_VOYAGE_SOURCE_AIS_DERIVED = 2;
+  MRV_VOYAGE_SOURCE_RECONCILED = 3;
+}
+
+// MrvReportState is the fail-closed lifecycle state of an annual emissions
+// report: DRAFT -> SUBMITTED -> VERIFIER_REVIEW -> VERIFIED; REJECTED is a
+// fail-closed terminal branch. No unverified report may produce a Statement
+// of Compliance.
+enum MrvReportState {
+  MRV_REPORT_STATE_UNSPECIFIED = 0;
+  MRV_REPORT_STATE_DRAFT = 1;
+  MRV_REPORT_STATE_SUBMITTED = 2;
+  MRV_REPORT_STATE_VERIFIER_REVIEW = 3;
+  MRV_REPORT_STATE_VERIFIED = 4;
+  MRV_REPORT_STATE_REJECTED = 5;
+}
+
+// MrvVerificationDecision is the fail-closed outcome of a verification
+// decision on an annual report. The decision ledger is immutable.
+enum MrvVerificationDecision {
+  MRV_VERIFICATION_DECISION_UNSPECIFIED = 0;
+  MRV_VERIFICATION_DECISION_VERIFY = 1;
+  MRV_VERIFICATION_DECISION_REJECT = 2;
+  MRV_VERIFICATION_DECISION_REQUEST_CLARIFICATION = 3;
+}
+
+// MrvCiiRating is the fail-closed CII rating band (A-E). The rating is
+// computed only from source-cited, operator-approved CII configuration;
+// unconfigured ship type/year yields no rating, never an estimate.
+enum MrvCiiRating {
+  MRV_CII_RATING_UNSPECIFIED = 0;
+  MRV_CII_RATING_A = 1;
+  MRV_CII_RATING_B = 2;
+  MRV_CII_RATING_C = 3;
+  MRV_CII_RATING_D = 4;
+  MRV_CII_RATING_E = 5;
+}
+
+// MrvFuelReportRecorded records an operator-reported fuel/activity record
+// (event type mrv.fuel-report.v1, topic mrv.fuel-reports; FHIR projection:
+// Observation with code = fuel grade + consumer). Fuel classification is by
+// ISO 8217 viscosity grade, not sulphur label. The report is the DCS record
+// of truth; AIS-derived activity is a cross-check only.
+message MrvFuelReportRecorded {
+  // Service-assigned immutable fuel-report identifier.
+  string report_id = 1;
+  // IMO ship identification number: exactly 7 decimal digits.
+  string imo_number = 2;
+  // Reporter-supplied idempotency reference; conflicting reuse fails closed.
+  string external_reference = 3;
+  google.protobuf.Timestamp period_from = 4;
+  google.protobuf.Timestamp period_to = 5;
+  MrvConsumerType consumer = 6;
+  // Stable ISO 8217 grade key resolving into the factor registry (for
+  // example "HFO_RME-RMK", "MDO_MGO_DMX-DMB"); the grade, never a sulphur
+  // marketing label.
+  string fuel_grade = 7;
+  MrvMonitoringMethod method = 8;
+  // Fuel consumed in milli-tonnes (tonnes scaled by 1e3). Fixed-point only.
+  uint64 fuel_tonnes_milli = 9;
+  // Distance travelled in milli-nautical-miles, when reported.
+  optional uint64 distance_nm_milli = 10;
+  // Hours under way in whole minutes, when reported.
+  optional uint64 hours_underway_minutes = 11;
+  // Bunker delivery note reference; mandatory when method is
+  // MRV_MONITORING_METHOD_A. Never a copy of the note itself.
+  string bdn_reference = 12;
+  // Digest of the evidence bundle retained inside the producing boundary
+  // ("sha256:<64 lowercase hex>"); raw evidence is not carried.
+  string evidence_digest_sha256 = 13;
+  google.protobuf.Timestamp reported_at = 14;
+}
+
+// MrvVoyageRecorded records a BOSP/EOSP voyage-ledger entry (event type
+// mrv.voyage.v1, topic mrv.voyages), EU-MRV-compatible. Geofence evidence
+// references geo-service zone events; raw position history is not carried.
+message MrvVoyageRecorded {
+  // Service-assigned immutable voyage identifier.
+  string voyage_id = 1;
+  // IMO ship identification number: exactly 7 decimal digits.
+  string imo_number = 2;
+  MrvVoyageSource source = 3;
+  // Begin of sea passage; absent until recorded.
+  optional google.protobuf.Timestamp bosp_at = 4;
+  // UN/LOCODE of the BOSP port, when recorded.
+  string bosp_port_code = 5;
+  // End of sea passage; absent until recorded.
+  optional google.protobuf.Timestamp eosp_at = 6;
+  // UN/LOCODE of the EOSP port, when recorded.
+  string eosp_port_code = 7;
+  // Cargo carried in milli-tonnes, when recorded.
+  optional uint64 cargo_tonnes_milli = 8;
+  // Laden distance in milli-nautical-miles, when recorded.
+  optional uint64 laden_distance_nm_milli = 9;
+  // Digests of geofence zone-event evidence ("sha256:<64 lowercase hex>")
+  // supporting BOSP/EOSP and at-berth detection.
+  repeated string geofence_evidence_digest_sha256 = 10;
+  google.protobuf.Timestamp recorded_at = 11;
+}
+
+// MrvVerificationRecorded records an immutable verifier decision on an annual
+// report (event type mrv.verification.v1, topic mrv.verifications; FHIR
+// projection: Provenance). Maker and checker are distinct principals at the
+// producing boundary; the AIS cross-check outcome is recorded as a digest.
+message MrvVerificationRecorded {
+  // Service-assigned immutable verification identifier.
+  string verification_id = 1;
+  // Annual report this decision applies to.
+  string annual_report_id = 2;
+  MrvVerificationDecision decision = 3;
+  // Stable machine-readable reason code; mandatory when decision is not
+  // VERIFY.
+  string reason_code = 4;
+  // Digest of the AIS cross-check result record ("sha256:<64 lowercase
+  // hex>"); reported values are never silently overwritten.
+  string ais_crosscheck_digest_sha256 = 5;
+  google.protobuf.Timestamp decided_at = 6;
+}
+
+// MrvEmissionsAnnualReportSubmitted records the compile/submit of an annual
+// DCS emissions report (event type mrv.emissions-annual.v1, topic
+// mrv.annual-reports; FHIR projection: DocumentReference whose hash is the
+// artifact sha256). Totals are computed from the factor registry; the
+// factor_set digest binds the exact source-cited factor rows used. CII is
+// carried only when computable from approved configuration; otherwise the
+// rating fields are absent (NOT_COMPUTABLE), never estimated.
+message MrvEmissionsAnnualReportSubmitted {
+  // Service-assigned immutable annual-report identifier.
+  string annual_report_id = 1;
+  // IMO ship identification number: exactly 7 decimal digits.
+  string imo_number = 2;
+  // Calendar year of the reporting period.
+  uint32 calendar_year = 3;
+  MrvReportState state = 4;
+  // Total CO2 in milli-tonnes across all consumer types, computed as
+  // fuel x factor over the source-cited factor registry. Fixed-point only.
+  uint64 co2_tonnes_milli = 5;
+  // Total distance in milli-nautical-miles.
+  uint64 distance_nm_milli = 6;
+  // Total hours under way in whole minutes.
+  uint64 hours_underway_minutes = 7;
+  // Digest of the exact factor-registry rows used
+  // ("sha256:<64 lowercase hex>"). Every factor row carries a source
+  // citation inside the producing boundary; there is no default factor.
+  string factor_set_digest_sha256 = 8;
+  // Attained annual operational CII in nano-units (scaled by 1e9), when
+  // computable from approved CII configuration; absent when NOT_COMPUTABLE.
+  optional uint64 attained_cii_nano = 9;
+  // Required CII in nano-units, when computable.
+  optional uint64 required_cii_nano = 10;
+  // Rating band; MRV_CII_RATING_UNSPECIFIED when CII is NOT_COMPUTABLE.
+  MrvCiiRating cii_rating = 11;
+  google.protobuf.Timestamp submitted_at = 12;
+}
+
+// MrvStatementOfComplianceIssued records the issue of an IMO DCS Statement
+// of Compliance (event type mrv.soc.v1, topic mrv.soc). Emission requires
+// the annual report to be VERIFIED at the producing boundary. The artifact
+// digest anchors the signed canonical JSON annual-report artifact in the
+// gold layer; envelope provenance.ledger_commit_hash carries the same digest.
+message MrvStatementOfComplianceIssued {
+  // Service-assigned immutable SoC identifier.
+  string soc_id = 1;
+  // The VERIFIED annual report this SoC attests.
+  string annual_report_id = 2;
+  // IMO ship identification number: exactly 7 decimal digits.
+  string imo_number = 3;
+  // Calendar year of the reporting period.
+  uint32 calendar_year = 4;
+  // Digest of the canonical signed report artifact ("sha256:<64 lowercase
+  // hex>").
+  string artifact_digest_sha256 = 5;
+  google.protobuf.Timestamp issued_at = 6;
+}
+
+// MrvActivityEstimateComputed records an AIS-derived activity estimate (event
+// type mrv.activity-estimate.v1, topic mrv.activity-estimates) computed from
+// the platform's own position plane as a verification cross-check. Estimates
+// never overwrite reported values; insufficient AIS coverage is an honest,
+// explicit outcome.
+message MrvActivityEstimateComputed {
+  // Service-assigned immutable estimate identifier.
+  string estimate_id = 1;
+  // IMO ship identification number: exactly 7 decimal digits. Empty until
+  // the AIS link is confirmed; mmsi is then authoritative for the position
+  // plane.
+  string imo_number = 2;
+  // Maritime Mobile Service Identity the estimate was computed from:
+  // exactly 9 decimal digits.
+  string mmsi = 3;
+  google.protobuf.Timestamp period_from = 4;
+  google.protobuf.Timestamp period_to = 5;
+  // AIS-derived distance under way in milli-nautical-miles.
+  uint64 distance_nm_milli = 6;
+  // AIS-derived hours under way in whole minutes.
+  uint64 hours_underway_minutes = 7;
+  // True when AIS coverage over the period was insufficient for a meaningful
+  // estimate; the distance/hours fields are then not authoritative.
+  bool insufficient_coverage = 8;
+  // Digest of the trajectory inputs used ("sha256:<64 lowercase hex>") so
+  // the estimate is reproducible.
+  string input_digest_sha256 = 9;
+  google.protobuf.Timestamp computed_at = 10;
+}

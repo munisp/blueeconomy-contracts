@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "blueeconomy/contracts/v1/common.proto";
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // EvidencePackageCreated is emitted after a service has validated and durably recorded an evidence package.
 message EvidencePackageCreated {
@@ -18,16 +18,25 @@ message EvidencePackageCreated {
   // Cryptographic digest of the canonical content; raw document content is not carried in the event.
   string content_sha256 = 5;
   google.protobuf.Timestamp received_at = 6;
-  string validation_status = 7;
+  // Deprecated free-text validation status. Producers must populate
+  // validation_state; consumers must prefer validation_state and fail closed
+  // when it is UNSPECIFIED.
+  string validation_status = 7 [deprecated = true];
   string workflow_case_id = 8;
+  ValidationStatus validation_state = 9;
 }
 
 // EvidencePackageValidationChanged records a state transition and is replay-safe by package/version.
 message EvidencePackageValidationChanged {
   EventMetadata metadata = 1;
   string evidence_package_id = 2;
-  string prior_validation_status = 3;
-  string validation_status = 4;
+  // Deprecated free-text validation statuses. Producers must populate
+  // prior_validation_state and validation_state; consumers must prefer the enum
+  // fields and fail closed when validation_state is UNSPECIFIED.
+  string prior_validation_status = 3 [deprecated = true];
+  string validation_status = 4 [deprecated = true];
   string validation_reason_code = 5;
   string workflow_case_id = 6;
+  ValidationStatus prior_validation_state = 7;
+  ValidationStatus validation_state = 8;
 }

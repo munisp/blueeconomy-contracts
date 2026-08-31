@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "blueeconomy/contracts/v1/common.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // MobileObservationAccepted is the minimised, validated event boundary for a
 // field observation accepted by approved middleware. It intentionally carries
@@ -14,9 +14,16 @@ message MobileObservationAccepted {
   EventMetadata metadata = 1;
   string observation_id = 2;
   string category = 3;
-  string severity = 4;
+  // Deprecated free-text severity. Producers must populate severity_level;
+  // consumers must prefer severity_level and fail closed when it is UNSPECIFIED.
+  string severity = 4 [deprecated = true];
   string location_reference = 5;
   string content_digest_sha256 = 6;
-  string validation_status = 7;
+  // Deprecated free-text validation status. Producers must populate
+  // validation_state; consumers must prefer validation_state and fail closed
+  // when it is UNSPECIFIED.
+  string validation_status = 7 [deprecated = true];
   string contract_version = 8;
+  Severity severity_level = 9;
+  ValidationStatus validation_state = 10;
 }

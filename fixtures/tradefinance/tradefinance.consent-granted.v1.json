@@ -1,0 +1,40 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-tf-000001",
+  "eventType": "tradefinance.consent.v1",
+  "occurredAt": "2026-09-02T10:00:00Z",
+  "producer": "financial-controls",
+  "correlationId": "corr-tf-000001",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "entry": [
+      {
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.tradefinance.v1.ConsentGranted",
+          "bankId": "bank-gtb",
+          "checkerReference": "compliance-checker-01",
+          "consentEnvelopeDigestSha256": "sha256:1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091",
+          "consentId": "tf-con-000001",
+          "expiresAt": "2027-03-01T00:00:00Z",
+          "grantedAt": "2026-09-02T10:00:00Z",
+          "internalEventType": "tradefinance.consent.activated",
+          "makerReference": "sw-user-1042",
+          "scopes": [
+            "CONSENT_SCOPE_DECLARATION_DIGESTS",
+            "CONSENT_SCOPE_DUTY_PAYMENT_HISTORY"
+          ],
+          "subjectId": "tf-con-000001",
+          "traderReference": "sw-user-1042"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "compliance-checker-01",
+    "principalRole": "CUSTOMS_COMPLIANCE_OFFICER",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpbmFuY2lhbC1jb250cm9scy13cDYtZml4dHVyZSJ9.eyJjbGFzc2lmaWNhdGlvbiI6IkZJRFVDSUFSWV9TRUdSRUdBVEVEIiwiY29ycmVsYXRpb25JZCI6ImNvcnItdGYtMDAwMDAxIiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC10Zi0wMDAwMDEiLCJldmVudFR5cGUiOiJ0cmFkZWZpbmFuY2UuY29uc2VudC52MSIsImZoaXIiOnsiZW50cnkiOlt7InJlc291cmNlIjp7IkB0eXBlIjoidHlwZS5nb29nbGVhcGlzLmNvbS9ibHVlZWNvbm9teS50cmFkZWZpbmFuY2UudjEuQ29uc2VudEdyYW50ZWQiLCJiYW5rSWQiOiJiYW5rLWd0YiIsImNoZWNrZXJSZWZlcmVuY2UiOiJjb21wbGlhbmNlLWNoZWNrZXItMDEiLCJjb25zZW50RW52ZWxvcGVEaWdlc3RTaGEyNTYiOiJzaGEyNTY6MWEyYjNjNGQ1ZTZmNzA4MTkyYTNiNGM1ZDZlN2Y4MDkxYTJiM2M0ZDVlNmY3MDgxOTJhM2I0YzVkNmU3ZjgwOTEiLCJjb25zZW50SWQiOiJ0Zi1jb24tMDAwMDAxIiwiZXhwaXJlc0F0IjoiMjAyNy0wMy0wMVQwMDowMDowMFoiLCJncmFudGVkQXQiOiIyMDI2LTA5LTAyVDEwOjAwOjAwWiIsImludGVybmFsRXZlbnRUeXBlIjoidHJhZGVmaW5hbmNlLmNvbnNlbnQuYWN0aXZhdGVkIiwibWFrZXJSZWZlcmVuY2UiOiJzdy11c2VyLTEwNDIiLCJzY29wZXMiOlsiQ09OU0VOVF9TQ09QRV9ERUNMQVJBVElPTl9ESUdFU1RTIiwiQ09OU0VOVF9TQ09QRV9EVVRZX1BBWU1FTlRfSElTVE9SWSJdLCJzdWJqZWN0SWQiOiJ0Zi1jb24tMDAwMDAxIiwidHJhZGVyUmVmZXJlbmNlIjoic3ctdXNlci0xMDQyIn19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjYtMDktMDJUMTA6MDA6MDBaIiwicHJvZHVjZXIiOiJmaW5hbmNpYWwtY29udHJvbHMiLCJwcm92ZW5hbmNlIjp7ImxlZGdlckNvbW1pdEhhc2giOiJzaGEyNTY6OWYyYzFkMmI0YTRlNmY4MDkxYTJiM2M0ZDVlNmY3MDgxOTJhM2I0YzVkNmU3ZjgwOTFhMmIzYzRkNWU2ZjcwOCIsInByaW5jaXBhbElkIjoiY29tcGxpYW5jZS1jaGVja2VyLTAxIiwicHJpbmNpcGFsUm9sZSI6IkNVU1RPTVNfQ09NUExJQU5DRV9PRkZJQ0VSIn19.7hO1KM0iGZ6MLgkKnAv_02aEkFFY_i_NfhAjKNA1owkfwGU72T1ZKg041U1n9KijIsz2dHO6WKDsoU4wal9nDw",
+    "ledgerCommitHash": "sha256:9f2c1d2b4a4e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708"
+  },
+  "classification": "FIDUCIARY_SEGREGATED"
+}

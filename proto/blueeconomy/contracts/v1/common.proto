@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package blueeconomy.contracts.v1;
 
-option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
 
 // DataClassification is the minimum classification carried by an internal event.
 enum DataClassification {
@@ -14,6 +14,42 @@ enum DataClassification {
   DATA_CLASSIFICATION_CONFIDENTIAL = 3;
   DATA_CLASSIFICATION_RESTRICTED = 4;
   DATA_CLASSIFICATION_HIGHLY_RESTRICTED = 5;
+}
+
+// Severity is the shared, fail-closed severity scale for safety cases,
+// observations and alerts. Free-text severity values are prohibited.
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_LOW = 1;
+  SEVERITY_MODERATE = 2;
+  SEVERITY_HIGH = 3;
+  SEVERITY_CRITICAL = 4;
+}
+
+// ValidationStatus is the shared, fail-closed validation outcome for accepted
+// evidence, observations and telemetry. Free-text validation status values are
+// prohibited.
+enum ValidationStatus {
+  VALIDATION_STATUS_UNSPECIFIED = 0;
+  VALIDATION_STATUS_PENDING = 1;
+  VALIDATION_STATUS_VALIDATED = 2;
+  VALIDATION_STATUS_REJECTED = 3;
+  VALIDATION_STATUS_QUARANTINED = 4;
+}
+
+// CurrencyCode is the ISO 4217 currency set permitted on platform money fields.
+enum CurrencyCode {
+  CURRENCY_CODE_UNSPECIFIED = 0;
+  CURRENCY_CODE_NGN = 1;
+  CURRENCY_CODE_USD = 2;
+}
+
+// Money is a fail-closed monetary amount: integer minor units only (kobo for
+// NGN, cents for USD). Floating-point money is prohibited.
+message Money {
+  CurrencyCode currency = 1;
+  // Amount in minor units of the currency. Must be non-negative.
+  int64 amount_minor = 2;
 }
 
 // EventMetadata supports traceability without embedding source-system secrets.

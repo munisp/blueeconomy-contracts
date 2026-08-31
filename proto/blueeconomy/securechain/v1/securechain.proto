@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package blueeconomy.securechain.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/securechain/v1;securechainv1";
+
+// WP-7 Secure Chain: Portbase-style PIN-free, verified-chain digital
+// container release (ports.securechain.v1 topic). Each message below is a
+// domain resource transported as the payload of an envelope v1.0 event
+// (FHIR R4 message Bundle + JWS EdDSA/JCS provenance signature). No PIN
+// codes, passwords or shared secrets exist anywhere in the contract:
+// organisation identity is always the verified OIDC/gateway subject of the
+// producing request, and every handoff is a hash-chained, append-only link.
+
+// SecureChainStatus is the DB-enforced release-chain lifecycle.
+enum SecureChainStatus {
+  SECURE_CHAIN_STATUS_UNSPECIFIED = 0;
+  SECURE_CHAIN_STATUS_ACTIVE = 1;
+  SECURE_CHAIN_STATUS_COMPLETED = 2;
+  SECURE_CHAIN_STATUS_REVOKED = 3;
+  SECURE_CHAIN_STATUS_EXPIRED = 4;
+}
+
+// SecureChainLinkState is derived from the link resolution timestamps; links
+// are append-only and resolve exactly once.
+enum SecureChainLinkState {
+  SECURE_CHAIN_LINK_STATE_UNSPECIFIED = 0;
+  SECURE_CHAIN_LINK_STATE_PENDING = 1;
+  SECURE_CHAIN_LINK_STATE_ACCEPTED = 2;
+  SECURE_CHAIN_LINK_STATE_DECLINED = 3;
+  SECURE_CHAIN_LINK_STATE_REVOKED = 4;
+}
+
+// ChainCreated opens a verified release chain for an import container. The
+// issuer must hold B/L release authority (the shipping line recorded against
+// the B/L digest); one ACTIVE chain per container is DB-enforced.
+message ChainCreated {
+  // Service-assigned immutable chain identifier.
+  string chain_id = 1;
+  // ISO 6346 container number.
+  string container_id = 2;
+  // SHA-256 (hex) of the carrier B/L manifest record; the plaintext B/L
+  // never leaves the shipping line.
+  string bl_digest_sha256 = 3;
+  // Verified organisation identifier of the issuing shipping line.
+  string issuer_org = 4;
+  // Chain expiry; the expiry sweep retires ACTIVE chains past this instant.
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+// LinkNominated appends a hash-chained nomination edge from the current
+// verified tail holder to the next organisation (line -> forwarder ->
+// transporter). link_hash = sha256(prev_link_hash || "|" ||
+// JCS(link identity fields)); the previous link must be resolved.
+message LinkNominated {
+  string chain_id = 1;
+  // 1-based position in the chain; seq N requires link N-1 resolved.
+  int64 seq = 2;
+  // Verified organisation identifier of the nominator (current tail).
+  string from_org = 3;
+  // Organisation identifier of the nominee.
+  string to_org = 4;
+  // Hash-chain anchor: link_hash of link seq-1 (zero hash for seq 1).
+  string prev_hash_sha256 = 5;
+  // Hash-chain digest of this link's identity fields.
+  string link_hash_sha256 = 6;
+  google.protobuf.Timestamp nominated_at = 7;
+}
+
+// LinkAccepted records the nominee's explicit acceptance; the verified chain
+// tail moves to the nominee.
+message LinkAccepted {
+  string chain_id = 1;
+  int64 seq = 2;
+  string from_org = 3;
+  string to_org = 4;
+  string link_hash_sha256 = 5;
+  google.protobuf.Timestamp accepted_at = 6;
+}
+
+// LinkDeclined records the nominee's explicit decline; the verified chain
+// tail returns to the nominator, who may nominate another organisation.
+message LinkDeclined {
+  string chain_id = 1;
+  int64 seq = 2;
+  string from_org = 3;
+  string to_org = 4;
+  string link_hash_sha256 = 5;
+  string reason = 6;
+  google.protobuf.Timestamp declined_at = 7;
+}
+
+// ChainRevoked cascades: the issuing shipping line killed the chain, every
+// unresolved or accepted link is revoked and outstanding release tokens die
+// (they validate against chain status at the gate).
+message ChainRevoked {
+  string chain_id = 1;
+  string container_id = 2;
+  string reason = 3;
+  google.protobuf.Timestamp revoked_at = 4;
+}
+
+// ChainExpired records the expiry-sweep retirement of an ACTIVE chain.
+message ChainExpired {
+  string chain_id = 1;
+  string container_id = 2;
+  google.protobuf.Timestamp expired_at = 3;
+}
+
+// ReleaseAuthorized is the terminal-release grant: issued ONLY to the
+// verified chain tail holder. The token is an envelope-signed JWS carrying a
+// random 256-bit single-use nonce with a short TTL; eCallUp check-in and the
+// terminal gate must present the nonce.
+message ReleaseAuthorized {
+  string chain_id = 1;
+  string container_id = 2;
+  // Verified tail-holder organisation receiving the release.
+  string holder_org = 3;
+  // Single-use nonce (hex, 256-bit); consumed atomically at the gate.
+  string nonce = 4;
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+// ReleaseConsumed records the gate redemption of a release token. The nonce
+// was claimed atomically (replay is DB-rejected) and the embedded JWS
+// verified against the service signing key; the chain is COMPLETED.
+message ReleaseConsumed {
+  string chain_id = 1;
+  string container_id = 2;
+  string holder_org = 3;
+  string nonce = 4;
+  string gate_id = 5;
+  google.protobuf.Timestamp consumed_at = 6;
+}
+
+// VelocityFlagged is the anti-fraud anomaly hook: the chain was re-nominated
+// more than the configured threshold within 24h. When fail-closed hold is
+// configured the chain is held (no nominations or releases) until review.
+message VelocityFlagged {
+  string chain_id = 1;
+  string container_id = 2;
+  int32 nominations_24h = 3;
+  int32 threshold = 4;
+  bool hold_applied = 5;
+  google.protobuf.Timestamp flagged_at = 6;
+}

@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Phase 8: met-ocean advisories (waterways.met_ocean.advisories.v1 topic).
+// Each message is a domain resource transported as the primary resource of an
+// EventEnvelope FHIR message Bundle, produced by the waterway-safety service
+// from configured met-ocean feeds. Advisories follow a WMO Common Alerting
+// Protocol (CAP) 1.2 profile: category is always "Met", and the alert
+// lifecycle is governed by the CAP msgType, including an explicit Cancel.
+// Advisories are operational decision-support issued by the platform sender;
+// they are never presented as official national met-authority (NiMet)
+// warnings. Raw feed payloads stay inside the producing boundary; every
+// advisory is bound to its source artifacts by digest. See
+// docs/met-ocean-advisories.md.
+
+// CapMessageType is the fail-closed CAP 1.2 msgType governing the advisory
+// lifecycle. CANCEL is explicit: an active advisory whose feed goes dark or
+// whose conditions subside is cancelled by a CANCEL advisory, so downstream
+// consumers (for example the ferry boarding-pause bridge) resume
+// deterministically — boarding never silently un-pauses and never silently
+// stays paused. The canonical JSON wire form renders these values without
+// the CAP_MESSAGE_TYPE_ prefix (for example CAP_MESSAGE_TYPE_CANCEL renders
+// as "Cancel"); consumers must fail closed on any other value.
+enum CapMessageType {
+  CAP_MESSAGE_TYPE_UNSPECIFIED = 0;
+  CAP_MESSAGE_TYPE_ALERT = 1;
+  CAP_MESSAGE_TYPE_UPDATE = 2;
+  CAP_MESSAGE_TYPE_CANCEL = 3;
+}
+
+// CapSeverity is the fail-closed CAP 1.2 severity scale. The canonical JSON
+// wire form renders these values without the CAP_SEVERITY_ prefix (for
+// example CAP_SEVERITY_SEVERE renders as "Severe").
+enum CapSeverity {
+  CAP_SEVERITY_UNSPECIFIED = 0;
+  CAP_SEVERITY_MINOR = 1;
+  CAP_SEVERITY_MODERATE = 2;
+  CAP_SEVERITY_SEVERE = 3;
+  CAP_SEVERITY_EXTREME = 4;
+  // CAP "Unknown": severity not determinable from the source data.
+  CAP_SEVERITY_UNKNOWN = 5;
+}
+
+// CapUrgency is the fail-closed CAP 1.2 urgency scale. The canonical JSON
+// wire form renders these values without the CAP_URGENCY_ prefix.
+enum CapUrgency {
+  CAP_URGENCY_UNSPECIFIED = 0;
+  CAP_URGENCY_IMMEDIATE = 1;
+  CAP_URGENCY_EXPECTED = 2;
+  CAP_URGENCY_FUTURE = 3;
+  CAP_URGENCY_PAST = 4;
+  CAP_URGENCY_UNKNOWN = 5;
+}
+
+// CapCertainty is the fail-closed CAP 1.2 certainty scale. The canonical
+// JSON wire form renders these values without the CAP_CERTAINTY_ prefix.
+enum CapCertainty {
+  CAP_CERTAINTY_UNSPECIFIED = 0;
+  CAP_CERTAINTY_OBSERVED = 1;
+  CAP_CERTAINTY_LIKELY = 2;
+  CAP_CERTAINTY_POSSIBLE = 3;
+  CAP_CERTAINTY_UNLIKELY = 4;
+  CAP_CERTAINTY_UNKNOWN = 5;
+}
+
+// AdvisorySource is the fail-closed origin of an advisory. Operator overrides
+// are a retained, audited manual channel and are always classified
+// distinctly from feed-derived advisories.
+enum AdvisorySource {
+  ADVISORY_SOURCE_UNSPECIFIED = 0;
+  // Derived deterministically from configured met-ocean feed readings and a
+  // signed threshold policy.
+  ADVISORY_SOURCE_FEED = 1;
+  // Authoritative human call via the audited operator-override channel.
+  ADVISORY_SOURCE_OPERATOR_OVERRIDE = 2;
+}
+
+// MetoceanFeedKind is the fail-closed taxonomy of met-ocean feed adapters.
+// Free-text feed kinds are prohibited. A feed absent from the deployment
+// configuration produces nothing; there is no synthetic feed.
+enum MetoceanFeedKind {
+  METOCEAN_FEED_KIND_UNSPECIFIED = 0;
+  METOCEAN_FEED_KIND_OPEN_METEO_MARINE = 1;
+  METOCEAN_FEED_KIND_COPERNICUS_WAVE = 2;
+  METOCEAN_FEED_KIND_NOAA_GFS = 3;
+  // National met authority CAP feed; requires an external agreement before
+  // any integration exists.
+  METOCEAN_FEED_KIND_NIMET_CAP = 4;
+}
+
+// MetoceanAdvisoryStatus is the fail-closed status of an advisory instance.
+enum MetoceanAdvisoryStatus {
+  METOCEAN_ADVISORY_STATUS_UNSPECIFIED = 0;
+  METOCEAN_ADVISORY_STATUS_ACTIVE = 1;
+  // Expired by passage of effective_until or by feed loss with reason
+  // recorded inside the producing boundary; always paired with an explicit
+  // CANCEL advisory so consumers resume deterministically.
+  METOCEAN_ADVISORY_STATUS_EXPIRED = 2;
+  METOCEAN_ADVISORY_STATUS_CANCELLED = 3;
+}
+
+// MetoceanAdvisoryIssued records the issue of a met-ocean advisory (event
+// type waterways.met_ocean.advisory.v1) in the platform CAP 1.2 profile.
+// advisory_id is the CAP identifier; msg_type governs the lifecycle, with
+// CANCEL issued explicitly to terminate a previously issued advisory (never
+// by silent absence). Every advisory is bound by bulletin_reference to the
+// SHA-256 digest of the raw source artifacts it was derived from; advisories
+// are never issued without a digest-bound source. Licence attribution is
+// code-visible and mandatory.
+message MetoceanAdvisoryIssued {
+  // CAP identifier: service-assigned immutable advisory identifier.
+  string advisory_id = 1;
+  // CAP sender: the stable platform producer name (for example
+  // "blueeconomy-waterway-safety"). Never the national met authority.
+  string sender = 2;
+  CapMessageType msg_type = 3;
+  // CAP category is fixed to "Met"; consumers must fail closed on any other
+  // value.
+  string category = 4;
+  // Stable machine-readable phenomenon code (for example "HIGH_WIND",
+  // "HIGH_SIGNIFICANT_WAVE_HEIGHT"); carries the CAP event.
+  string phenomenon_code = 5;
+  CapUrgency urgency = 6;
+  CapSeverity severity = 7;
+  CapCertainty certainty = 8;
+  // Stable identifier of the governed hazard zone the advisory applies to;
+  // zone geometry is resolvable inside the producing boundary from the
+  // signed hazard-zone registry and is not carried in the event.
+  string zone_id = 9;
+  // CAP effective time of the advisory information.
+  google.protobuf.Timestamp effective_from = 10;
+  // CAP onset: expected beginning of the event.
+  optional google.protobuf.Timestamp onset = 11;
+  // CAP expires: the advisory is inert after this time.
+  google.protobuf.Timestamp effective_until = 12;
+  // Digest binding the advisory to its raw source artifacts
+  // ("sha256:<64 lowercase hex>"). Mandatory on ALERT and UPDATE; on CANCEL
+  // it binds the cancellation rationale record.
+  string bulletin_reference = 13;
+  // For UPDATE and CANCEL: the advisory_id of the advisory being updated or
+  // cancelled. Empty on ALERT.
+  string references_advisory_id = 14;
+  AdvisorySource source = 15;
+  // Present when source is ADVISORY_SOURCE_FEED: the feed adapter kind the
+  // advisory was derived from. UNSPECIFIED for operator overrides.
+  MetoceanFeedKind feed_kind = 16;
+  // Licence attribution text persisted with the source readings (for
+  // example "Weather data by Open-Meteo.com"); mandatory and non-empty for
+  // feed-derived advisories.
+  string attribution_text = 17;
+  MetoceanAdvisoryStatus status = 18;
+  // Digest of the signed advisory policy and hazard-zone registry versions
+  // applied ("sha256:<64 lowercase hex>"), so consumers can audit which
+  // governed configuration produced the advisory.
+  string policy_digest_sha256 = 19;
+  google.protobuf.Timestamp issued_at = 20;
+}

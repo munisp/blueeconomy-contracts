@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream A: e-Call-Up port truck flow (ports.* topics). Each message below
+// is a domain resource: it is transported as the primary resource of an
+// EventEnvelope FHIR message Bundle and deliberately carries references,
+// tokenized identifiers and digests rather than personal data, raw documents,
+// payment credentials or secrets.
+
+// SlotReservationStatus is the fail-closed lifecycle of a terminal slot hold.
+enum SlotReservationStatus {
+  SLOT_RESERVATION_STATUS_UNSPECIFIED = 0;
+  SLOT_RESERVATION_STATUS_HELD = 1;
+  SLOT_RESERVATION_STATUS_CONFIRMED = 2;
+  SLOT_RESERVATION_STATUS_RELEASED = 3;
+  SLOT_RESERVATION_STATUS_EXPIRED = 4;
+  SLOT_RESERVATION_STATUS_DENIED = 5;
+}
+
+// PaymentIntentStatus is the fail-closed lifecycle of a booking payment intent.
+enum PaymentIntentStatus {
+  PAYMENT_INTENT_STATUS_UNSPECIFIED = 0;
+  PAYMENT_INTENT_STATUS_AUTHORIZED = 1;
+  PAYMENT_INTENT_STATUS_SETTLED = 2;
+  PAYMENT_INTENT_STATUS_FAILED = 3;
+  PAYMENT_INTENT_STATUS_REFUNDED = 4;
+}
+
+// GateDecision is the fail-closed outcome of a terminal gate scan.
+enum GateDecision {
+  GATE_DECISION_UNSPECIFIED = 0;
+  GATE_DECISION_APPROVED = 1;
+  GATE_DECISION_DENIED = 2;
+  GATE_DECISION_PENDING_REVIEW = 3;
+}
+
+// TruckBookingCreated opens the per-truck call-up flow. Truck and operator are
+// tokenized references; raw plate numbers, driver identities and documents are
+// resolved only inside the producing service boundary.
+message TruckBookingCreated {
+  // Service-assigned immutable booking identifier.
+  string booking_id = 1;
+  // Tokenized truck reference held by the booking service.
+  string truck_reference = 2;
+  // Tokenized haulage operator reference.
+  string operator_reference = 3;
+  // Terminal or port facility reference.
+  string terminal_reference = 4;
+  // Digest of the canonical booking payload (cargo declaration); raw documents
+  // are not carried in the event.
+  string booking_digest_sha256 = 5;
+}
+
+// SlotReservationUpdated records a state transition of a terminal slot hold for
+// a booking and is replay-safe by reservation_id.
+message SlotReservationUpdated {
+  string slot_reservation_id = 1;
+  string booking_id = 2;
+  string terminal_reference = 3;
+  // Gate lane or yard zone reference, not a precise sensitive location.
+  string gate_lane_reference = 4;
+  google.protobuf.Timestamp window_start = 5;
+  google.protobuf.Timestamp window_end = 6;
+  SlotReservationStatus status = 7;
+  // Stable machine-readable reason code when status is DENIED or RELEASED.
+  string status_reason_code = 8;
+}
+
+// PaymentIntentUpdated records a state transition of the payment intent
+// attached to a booking. Card, account and instrument details are prohibited;
+// only the tokenized payment-service references are carried.
+message PaymentIntentUpdated {
+  string payment_intent_id = 1;
+  string booking_id = 2;
+  Money amount = 3;
+  // Tokenized payer reference held by the payment service.
+  string payer_reference = 4;
+  // Opaque reference of the payment provider transaction.
+  string payment_provider_reference = 5;
+  PaymentIntentStatus status = 6;
+  string status_reason_code = 7;
+}
+
+// GateScanRecorded records a gate decision for a booked truck after the booking
+// and payment checks have been evaluated. It is the gate-approval fact used by
+// downstream audit anchoring.
+message GateScanRecorded {
+  string gate_scan_id = 1;
+  string booking_id = 2;
+  string slot_reservation_id = 3;
+  string terminal_reference = 4;
+  string gate_lane_reference = 5;
+  GateDecision decision = 6;
+  // Stable machine-readable reason code when decision is DENIED or
+  // PENDING_REVIEW.
+  string decision_reason_code = 7;
+  // Digest of the gate evidence package (for example ANPR capture); raw images
+  // are not carried in the event.
+  string evidence_digest_sha256 = 8;
+  google.protobuf.Timestamp scanned_at = 9;
+}

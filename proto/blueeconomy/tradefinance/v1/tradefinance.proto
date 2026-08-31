@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package blueeconomy.tradefinance.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/tradefinance/v1;tradefinancev1";
+
+// WP-6 trade-finance rail (CamelONE-style multi-bank trade finance,
+// Singapore NTP Trade Finance Compliance pattern). These events ride
+// tradefinance.consent.v1 and tradefinance.application.v1 topics in
+// envelopes classified ENVELOPE_CLASSIFICATION_FIDUCIARY_SEGREGATED. They
+// carry tokenized references, digests and integer money only — never raw
+// declarations, bank account details or credit documents.
+
+// ConsentScope is one shareable dataset class. The zero value is invalid;
+// consumers must fail closed on it.
+enum ConsentScope {
+  CONSENT_SCOPE_UNSPECIFIED = 0;
+  // Customs declaration digest references.
+  CONSENT_SCOPE_DECLARATION_DIGESTS = 1;
+  // Duty/tax payment history digest references.
+  CONSENT_SCOPE_DUTY_PAYMENT_HISTORY = 2;
+  // Tax-stamp status references.
+  CONSENT_SCOPE_TAX_STAMP_STATUS = 3;
+}
+
+// ConsentState is the maker-checker lifecycle of one consent.
+enum ConsentState {
+  CONSENT_STATE_UNSPECIFIED = 0;
+  CONSENT_STATE_PENDING_CHECKER = 1;
+  CONSENT_STATE_ACTIVE = 2;
+  CONSENT_STATE_REJECTED = 3;
+  CONSENT_STATE_REVOCATION_PENDING = 4;
+  CONSENT_STATE_REVOKED = 5;
+}
+
+// ConsentGranted records a consent that passed maker-checker and was sealed
+// into its envelope artifact. Principals are tokenized references.
+message ConsentGranted {
+  string consent_id = 1;
+  // Tokenized trader reference.
+  string trader_reference = 2;
+  // Registered bank identifier.
+  string bank_id = 3;
+  // Granted scopes; at least one, each carrying digest evidence.
+  repeated ConsentScope scopes = 4;
+  // Digest of the sealed consent envelope bundle; raw datasets are not carried.
+  string consent_envelope_digest_sha256 = 5;
+  // Tokenized maker/checker principals (must differ).
+  string maker_reference = 6;
+  string checker_reference = 7;
+  google.protobuf.Timestamp expires_at = 8;
+  google.protobuf.Timestamp granted_at = 9;
+}
+
+// ConsentRevoked records the checker-confirmed end of a consent. Data
+// sharing is suspended from the revocation request; this event is the
+// durable confirmation.
+message ConsentRevoked {
+  string consent_id = 1;
+  string trader_reference = 2;
+  string bank_id = 3;
+  string maker_reference = 4;
+  string checker_reference = 5;
+  google.protobuf.Timestamp revoked_at = 6;
+}
+
+// TradeFinanceProduct is one standardized product of the starter catalogue.
+enum TradeFinanceProduct {
+  TRADE_FINANCE_PRODUCT_UNSPECIFIED = 0;
+  TRADE_FINANCE_PRODUCT_IMPORT_LC_FACILITATION = 1;
+  TRADE_FINANCE_PRODUCT_EXPORT_PRESHIPMENT_FINANCE = 2;
+  TRADE_FINANCE_PRODUCT_INVOICE_RECEIVABLES_FINANCE = 3;
+  TRADE_FINANCE_PRODUCT_DUTY_DEFERRAL_GUARANTEE = 4;
+}
+
+// ApplicationState is the fail-closed product lifecycle state.
+enum ApplicationState {
+  APPLICATION_STATE_UNSPECIFIED = 0;
+  APPLICATION_STATE_APPLICATION = 1;
+  APPLICATION_STATE_KYC_CONSENT_CHECK = 2;
+  APPLICATION_STATE_BANK_REVIEW = 3;
+  APPLICATION_STATE_REGULATORY_CLEARANCE = 4;
+  APPLICATION_STATE_APPROVED = 5;
+  APPLICATION_STATE_DISBURSEMENT_PENDING = 6;
+  APPLICATION_STATE_DISBURSED = 7;
+  APPLICATION_STATE_SETTLED = 8;
+  APPLICATION_STATE_DECLINED = 9;
+}
+
+// TradeFinanceRole identifies each party in the approval chain.
+enum TradeFinanceRole {
+  TRADE_FINANCE_ROLE_UNSPECIFIED = 0;
+  TRADE_FINANCE_ROLE_BANK_KYC_OFFICER = 1;
+  TRADE_FINANCE_ROLE_BANK_CREDIT_OFFICER = 2;
+  TRADE_FINANCE_ROLE_CUSTOMS_COMPLIANCE_OFFICER = 3;
+  TRADE_FINANCE_ROLE_BANK_TREASURY_OFFICER = 4;
+  TRADE_FINANCE_ROLE_TRADER = 5;
+}
+
+// ApplicationSubmitted records a trade-finance application accepted with its
+// role chain. Amounts are integer minor units only.
+message ApplicationSubmitted {
+  string application_id = 1;
+  string external_reference = 2;
+  string trader_reference = 3;
+  string bank_id = 4;
+  // The consent authorizing compliance data sharing for this application.
+  string consent_id = 5;
+  TradeFinanceProduct product = 6;
+  blueeconomy.contracts.v1.Money amount = 7;
+  google.protobuf.Timestamp submitted_at = 8;
+}
+
+// ApplicationDecisionRecorded records one chain decision. A REJECT decision
+// moves the application to DECLINED (fail-closed terminal).
+message ApplicationDecisionRecorded {
+  string application_id = 1;
+  TradeFinanceRole role = 2;
+  // Tokenized deciding principal reference.
+  string approver_reference = 3;
+  bool approved = 4;
+  ApplicationState from_state = 5;
+  ApplicationState to_state = 6;
+  // Digest of the immutable approval entry; raw decision papers are not carried.
+  string approval_digest_sha256 = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+// DisbursementRecorded records the TigerBeetle double-entry disbursement of
+// an approved facility.
+message DisbursementRecorded {
+  string application_id = 1;
+  // Deterministic TigerBeetle transfer ids (idempotent evidence).
+  string reserve_transfer_id = 2;
+  string disburse_transfer_id = 3;
+  blueeconomy.contracts.v1.Money amount = 4;
+  google.protobuf.Timestamp disbursed_at = 5;
+}
+
+// SettlementRecorded records the trader repayment closing the lifecycle.
+message SettlementRecorded {
+  string application_id = 1;
+  string settle_transfer_id = 2;
+  blueeconomy.contracts.v1.Money amount = 3;
+  google.protobuf.Timestamp settled_at = 4;
+}

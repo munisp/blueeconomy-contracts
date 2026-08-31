@@ -1,0 +1,38 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-geo-000005",
+  "eventType": "geo.sos.v1",
+  "occurredAt": "2025-03-02T12:05:33Z",
+  "producer": "blueeconomy-geo-ingestion",
+  "correlationId": "corr-geo-000005",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-geo-000005",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:9d8c7b6a-5f4e-4d3c-2b1a-0f9e8d7c6b5a",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.SosAlertRaised",
+          "sosAlertId": "sos-000001",
+          "reporterId": "rptr-7f3c9a21",
+          "vesselReference": "vsl-ref-04d2e8",
+          "latitudeMicros": 6120100,
+          "longitudeMicros": 3446700,
+          "recordedAt": "2025-03-02T12:05:21Z",
+          "outboxId": "obx-2025-03-02-000121",
+          "freeText": "Sample distress note: taking on water, two crew aboard.",
+          "classification": "RESTRICTED"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "geo-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWdlby1pbmdlc3Rpb24tMCJ9.eyJjbGFzc2lmaWNhdGlvbiI6IlJFU1RSSUNURUQiLCJjb3JyZWxhdGlvbklkIjoiY29yci1nZW8tMDAwMDA1IiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC1nZW8tMDAwMDA1IiwiZXZlbnRUeXBlIjoiZ2VvLnNvcy52MSIsImZoaXIiOnsiYnVuZGxlSWQiOiJiZGwtZ2VvLTAwMDAwNSIsImVudHJ5IjpbeyJmdWxsVXJsIjoidXJuOnV1aWQ6OWQ4YzdiNmEtNWY0ZS00ZDNjLTJiMWEtMGY5ZThkN2M2YjVhIiwicmVzb3VyY2UiOnsiQHR5cGUiOiJ0eXBlLmdvb2dsZWFwaXMuY29tL2JsdWVlY29ub215LmNvbnRyYWN0cy52MS5Tb3NBbGVydFJhaXNlZCIsImNsYXNzaWZpY2F0aW9uIjoiUkVTVFJJQ1RFRCIsImZyZWVUZXh0IjoiU2FtcGxlIGRpc3RyZXNzIG5vdGU6IHRha2luZyBvbiB3YXRlciwgdHdvIGNyZXcgYWJvYXJkLiIsImxhdGl0dWRlTWljcm9zIjo2MTIwMTAwLCJsb25naXR1ZGVNaWNyb3MiOjM0NDY3MDAsIm91dGJveElkIjoib2J4LTIwMjUtMDMtMDItMDAwMTIxIiwicmVjb3JkZWRBdCI6IjIwMjUtMDMtMDJUMTI6MDU6MjFaIiwicmVwb3J0ZXJJZCI6InJwdHItN2YzYzlhMjEiLCJzb3NBbGVydElkIjoic29zLTAwMDAwMSIsInZlc3NlbFJlZmVyZW5jZSI6InZzbC1yZWYtMDRkMmU4In19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjUtMDMtMDJUMTI6MDU6MzNaIiwicHJvZHVjZXIiOiJibHVlZWNvbm9teS1nZW8taW5nZXN0aW9uIiwicHJvdmVuYW5jZSI6eyJsZWRnZXJDb21taXRIYXNoIjoiIiwicHJpbmNpcGFsSWQiOiJmNDdhYzEwYi01OGNjLTQzNzItYTU2Ny0wZTAyYjJjM2Q0NzkiLCJwcmluY2lwYWxSb2xlIjoiZ2VvLXByb2R1Y2VyIn0sInJlY29yZENsYXNzaWZpY2F0aW9uIjoiUkVTVFJJQ1RFRCJ9.RuVLlfcxmCt-qTTEgprQB2RD4OBGRfbcflMY6GRdRjq0dgzJR0LlBsiaOVFGz1irVxtgaY8oJKw1fSGKbbG6DA"
+  },
+  "classification": "RESTRICTED",
+  "recordClassification": "RESTRICTED"
+}

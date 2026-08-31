@@ -1,0 +1,36 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-tf-000003",
+  "eventType": "tradefinance.application.v1",
+  "occurredAt": "2026-09-02T11:00:00Z",
+  "producer": "financial-controls",
+  "correlationId": "corr-tf-000003",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "entry": [
+      {
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.tradefinance.v1.ApplicationDecisionRecorded",
+          "applicationId": "tf-app-000001",
+          "approvalDigestSha256": "sha256:2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b",
+          "approved": true,
+          "approverReference": "kyc-officer-11",
+          "decidedAt": "2026-09-02T11:00:00Z",
+          "fromState": "APPLICATION_STATE_KYC_CONSENT_CHECK",
+          "internalEventType": "tradefinance.application.decision_recorded",
+          "role": "TRADE_FINANCE_ROLE_BANK_KYC_OFFICER",
+          "subjectId": "tf-app-000001",
+          "toState": "APPLICATION_STATE_BANK_REVIEW"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "compliance-checker-01",
+    "principalRole": "CUSTOMS_COMPLIANCE_OFFICER",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpbmFuY2lhbC1jb250cm9scy13cDYtZml4dHVyZSJ9.eyJjbGFzc2lmaWNhdGlvbiI6IkZJRFVDSUFSWV9TRUdSRUdBVEVEIiwiY29ycmVsYXRpb25JZCI6ImNvcnItdGYtMDAwMDAzIiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC10Zi0wMDAwMDMiLCJldmVudFR5cGUiOiJ0cmFkZWZpbmFuY2UuYXBwbGljYXRpb24udjEiLCJmaGlyIjp7ImVudHJ5IjpbeyJyZXNvdXJjZSI6eyJAdHlwZSI6InR5cGUuZ29vZ2xlYXBpcy5jb20vYmx1ZWVjb25vbXkudHJhZGVmaW5hbmNlLnYxLkFwcGxpY2F0aW9uRGVjaXNpb25SZWNvcmRlZCIsImFwcGxpY2F0aW9uSWQiOiJ0Zi1hcHAtMDAwMDAxIiwiYXBwcm92YWxEaWdlc3RTaGEyNTYiOiJzaGEyNTY6MmIzYzRkNWU2ZjcwODE5MmEzYjRjNWQ2ZTdmODA5MWEyYjNjNGQ1ZTZmNzA4MTkyYTNiNGM1ZDZlN2Y4MDkxYTJiIiwiYXBwcm92ZWQiOnRydWUsImFwcHJvdmVyUmVmZXJlbmNlIjoia3ljLW9mZmljZXItMTEiLCJkZWNpZGVkQXQiOiIyMDI2LTA5LTAyVDExOjAwOjAwWiIsImZyb21TdGF0ZSI6IkFQUExJQ0FUSU9OX1NUQVRFX0tZQ19DT05TRU5UX0NIRUNLIiwiaW50ZXJuYWxFdmVudFR5cGUiOiJ0cmFkZWZpbmFuY2UuYXBwbGljYXRpb24uZGVjaXNpb25fcmVjb3JkZWQiLCJyb2xlIjoiVFJBREVfRklOQU5DRV9ST0xFX0JBTktfS1lDX09GRklDRVIiLCJzdWJqZWN0SWQiOiJ0Zi1hcHAtMDAwMDAxIiwidG9TdGF0ZSI6IkFQUExJQ0FUSU9OX1NUQVRFX0JBTktfUkVWSUVXIn19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjYtMDktMDJUMTE6MDA6MDBaIiwicHJvZHVjZXIiOiJmaW5hbmNpYWwtY29udHJvbHMiLCJwcm92ZW5hbmNlIjp7ImxlZGdlckNvbW1pdEhhc2giOiJzaGEyNTY6OWYyYzFkMmI0YTRlNmY4MDkxYTJiM2M0ZDVlNmY3MDgxOTJhM2I0YzVkNmU3ZjgwOTFhMmIzYzRkNWU2ZjcwOCIsInByaW5jaXBhbElkIjoiY29tcGxpYW5jZS1jaGVja2VyLTAxIiwicHJpbmNpcGFsUm9sZSI6IkNVU1RPTVNfQ09NUExJQU5DRV9PRkZJQ0VSIn19.XAho9kBTtE0yVyCboDl8WJ0em2L5DLij5fMF7HfrIXXj8VlR7yHdjLENcjdC9xGteoNciiGye6zzC892h5OnDQ",
+    "ledgerCommitHash": "sha256:9f2c1d2b4a4e6f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708"
+  },
+  "classification": "FIDUCIARY_SEGREGATED"
+}

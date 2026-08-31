@@ -1,0 +1,36 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-bluecarbon-000006",
+  "eventType": "bluecarbon.retirement.v1",
+  "occurredAt": "2026-08-29T14:00:00Z",
+  "producer": "blueeconomy-financial-controls",
+  "correlationId": "corr-bluecarbon-000006",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-bluecarbon-000006",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:ad7c42a0-d616-5cb7-b3ca-f59dd7781f92",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.BlueCarbonRetirementRecorded",
+          "retirementId": "bcrtr-000001",
+          "blockId": "bcb-000001",
+          "serial": "NG-BCR-0007-VERRA_VM0033_V2_1-2025-2001-3000",
+          "quantityKgCo2e": "1000000",
+          "beneficiary": "Example Coastal Conservation Fund",
+          "purposeCode": "VOLUNTARY_OFFSET_CLAIM",
+          "artifactDigestSha256": "sha256:afb49c5e9e2744c1ab5dfd2863c8eeeb5875fb0fbfe32757ef9031503134e640",
+          "retiredAt": "2026-08-27T16:45:00Z"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "bluecarbon-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWZpbmFuY2lhbC1jb250cm9scy0wIn0.eyJjbGFzc2lmaWNhdGlvbiI6IklOVEVSTkFMIiwiY29ycmVsYXRpb25JZCI6ImNvcnItYmx1ZWNhcmJvbi0wMDAwMDYiLCJlbnZlbG9wZVZlcnNpb24iOiIxLjAiLCJldmVudElkIjoiZXZ0LWJsdWVjYXJib24tMDAwMDA2IiwiZXZlbnRUeXBlIjoiYmx1ZWNhcmJvbi5yZXRpcmVtZW50LnYxIiwiZmhpciI6eyJidW5kbGVJZCI6ImJkbC1ibHVlY2FyYm9uLTAwMDAwNiIsImVudHJ5IjpbeyJmdWxsVXJsIjoidXJuOnV1aWQ6YWQ3YzQyYTAtZDYxNi01Y2I3LWIzY2EtZjU5ZGQ3NzgxZjkyIiwicmVzb3VyY2UiOnsiQHR5cGUiOiJ0eXBlLmdvb2dsZWFwaXMuY29tL2JsdWVlY29ub215LmNvbnRyYWN0cy52MS5CbHVlQ2FyYm9uUmV0aXJlbWVudFJlY29yZGVkIiwiYXJ0aWZhY3REaWdlc3RTaGEyNTYiOiJzaGEyNTY6YWZiNDljNWU5ZTI3NDRjMWFiNWRmZDI4NjNjOGVlZWI1ODc1ZmIwZmJmZTMyNzU3ZWY5MDMxNTAzMTM0ZTY0MCIsImJlbmVmaWNpYXJ5IjoiRXhhbXBsZSBDb2FzdGFsIENvbnNlcnZhdGlvbiBGdW5kIiwiYmxvY2tJZCI6ImJjYi0wMDAwMDEiLCJwdXJwb3NlQ29kZSI6IlZPTFVOVEFSWV9PRkZTRVRfQ0xBSU0iLCJxdWFudGl0eUtnQ28yZSI6IjEwMDAwMDAiLCJyZXRpcmVkQXQiOiIyMDI2LTA4LTI3VDE2OjQ1OjAwWiIsInJldGlyZW1lbnRJZCI6ImJjcnRyLTAwMDAwMSIsInNlcmlhbCI6Ik5HLUJDUi0wMDA3LVZFUlJBX1ZNMDAzM19WMl8xLTIwMjUtMjAwMS0zMDAwIn19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjYtMDgtMjlUMTQ6MDA6MDBaIiwicHJvZHVjZXIiOiJibHVlZWNvbm9teS1maW5hbmNpYWwtY29udHJvbHMiLCJwcm92ZW5hbmNlIjp7ImxlZGdlckNvbW1pdEhhc2giOiIiLCJwcmluY2lwYWxJZCI6ImY0N2FjMTBiLTU4Y2MtNDM3Mi1hNTY3LTBlMDJiMmMzZDQ3OSIsInByaW5jaXBhbFJvbGUiOiJibHVlY2FyYm9uLXByb2R1Y2VyIn19.9lL0JYMT2YMMOLDQZH6MMQbODBD6lj6X8b7JtbHh5vxhlaJYWGlRCv9UXWXObMUsFIBLYsSIlJC36w71W42yDQ"
+  },
+  "classification": "INTERNAL"
+}

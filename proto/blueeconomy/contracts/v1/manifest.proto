@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "blueeconomy/contracts/v1/envelope.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream B: ferry passenger operations (ferries.* topics). Each message is
+// a domain resource transported as the primary resource of an EventEnvelope
+// FHIR message Bundle. Passenger data is anonymized at the boundary: no names,
+// identity document numbers, phone numbers or precise home locations ever
+// appear in these events.
+
+// AnonymizedPassengerEntry is one entry of a passenger manifest Composition.
+// It carries only a salted digest (linkable to the authoritative record inside
+// the ticketing boundary) and coarse, non-identifying attributes.
+message AnonymizedPassengerEntry {
+  // Stable entry reference within the manifest, for example "urn:uuid:<uuid>".
+  string entry_reference = 1;
+  // Salted digest of the authoritative passenger record; reversible personal
+  // data is prohibited.
+  string passenger_digest_sha256 = 2;
+  // True when the passenger has boarded at manifest close.
+  bool embarked = 3;
+}
+
+// PassengerManifestSubmitted records a ferry manifest closed for a voyage. The
+// manifest is modelled as a FHIR-aligned Composition/List: manifest_bundle is a
+// FhirMessageBundle whose entries are AnonymizedPassengerEntry resources
+// (Composition.section entries / List items), keeping the transport aligned
+// with FHIR document semantics while anonymizing every entry.
+message PassengerManifestSubmitted {
+  // Service-assigned immutable manifest identifier.
+  string manifest_id = 1;
+  // Tokenized vessel reference held by the ferry operations service.
+  string vessel_reference = 2;
+  // Voyage or scheduled trip reference.
+  string voyage_reference = 3;
+  // Terminal or jetty reference.
+  string terminal_reference = 4;
+  google.protobuf.Timestamp scheduled_departure_at = 5;
+  // FHIR-aligned Composition/List of AnonymizedPassengerEntry resources.
+  FhirMessageBundle manifest_bundle = 6;
+  // Total passenger count; must equal the number of manifest_bundle entries.
+  // Producers and consumers must fail closed on mismatch.
+  uint32 passenger_count = 7;
+  // Digest of the canonical manifest document; the raw document is not carried.
+  string manifest_digest_sha256 = 8;
+}
+
+// TicketIssued records the issue of a single ferry ticket. The passenger is
+// represented only by the salted digest used in the manifest.
+message TicketIssued {
+  string ticket_id = 1;
+  string voyage_reference = 2;
+  string route_reference = 3;
+  // Salted digest of the authoritative passenger record, matching the digest
+  // used in the passenger manifest. Raw personal data is prohibited.
+  string passenger_digest_sha256 = 4;
+  Money fare = 5;
+  // Tokenized payment reference held by the payment service.
+  string payment_reference = 6;
+  google.protobuf.Timestamp issued_at = 7;
+}
+
+// VesselTelemetryRef is a minimised reference to ferry telemetry durably stored
+// inside the telemetry boundary. Raw position streams are not copied onto the
+// event bus; consumers resolve telemetry through the reference.
+message VesselTelemetryRef {
+  string vessel_reference = 1;
+  string voyage_reference = 2;
+  // Opaque reference resolvable inside the telemetry service.
+  string telemetry_reference = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  ValidationStatus validation_state = 5;
+  // Digest of the canonical telemetry payload; raw payload is not carried.
+  string payload_digest_sha256 = 6;
+}
+
+// AdverseWeatherAlert records an authoritative weather alert affecting ferry
+// operations on a route or waterway segment.
+message AdverseWeatherAlert {
+  string alert_id = 1;
+  // Route or waterway segment reference, not a precise sensitive location.
+  string route_reference = 2;
+  Severity severity_level = 3;
+  // Stable machine-readable phenomenon code (for example "HIGH_WIND").
+  string phenomenon_code = 4;
+  google.protobuf.Timestamp effective_from = 5;
+  google.protobuf.Timestamp effective_until = 6;
+  // Reference to the issuing authority bulletin; raw bulletin content is not
+  // carried in the event.
+  string bulletin_reference = 7;
+}
