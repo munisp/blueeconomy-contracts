@@ -1,0 +1,39 @@
+// blueeconomy.ml.v1 — shared model-registry and inference-event contract.
+//
+// Implemented by blueeconomy-ml-stack (producer of InferenceEvent on Kafka
+// topic ml.inference.v1) and consumed by singlewindow risk services. All
+// events travel in blueeconomy.contracts.v1.EventEnvelope (envelope_version
+// "1.0", FHIR R4 message Bundle, JWS-EdDSA over RFC 8785 JCS, kid
+// "<producer>-<epoch>") — see docs/envelope-signature.md.
+syntax = "proto3";
+package blueeconomy.ml.v1;
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/ml/v1;mlv1";
+
+// ModelRef pins one deployed model version (registry identity).
+message ModelRef {
+  string model_name = 1;     // e.g. "declaration-fraud"
+  string model_version = 2;  // semver, e.g. "0.1.0"
+  string artifact_digest = 3; // sha256 of the ONNX artifact (optional)
+}
+
+// InferenceEvent is the ml.inference.v1 payload (resource @type
+// type.googleapis.com/blueeconomy.ml.v1.InferenceEvent). Privacy contract:
+// digests only — raw features and raw entity identifiers (PII) never appear.
+message InferenceEvent {
+  ModelRef model = 1;
+  string status = 2;          // "OK" | "SCORING_UNAVAILABLE"
+  optional double score = 3;  // absent when unavailable — never fabricated
+  string mode = 4;            // "ml" | "rules_only"
+  double latency_ms = 5;
+  string entity_digest = 6;   // sha256 hex of the entity ID
+  string input_digest = 7;    // sha256 hex of the JCS-canonical feature vector
+  string detail = 8;          // bounded fail-closed reason when unavailable
+}
+
+// HealthEvent is the model-availability heartbeat payload.
+message HealthEvent {
+  ModelRef model = 1;
+  string state = 2;           // "available" | "unavailable"
+  string reason = 3;          // fail-closed reason when unavailable
+  string occurred_at = 4;     // RFC3339 UTC
+}
