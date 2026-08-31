@@ -1,0 +1,135 @@
+name: Contract Release
+
+on:
+  push:
+    tags:
+      # Contract governance releases.
+      - 'v*'
+      # Go module tags for versioned `go get` of the generated module
+      # (gen/go/v1.2.3 at the same commit as contract tag v1.2.3).
+      - 'gen/go/v*'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@9672cee01808979ea1249f81d6d321217b9a10f6 # v1.47.2
+      - name: Verify the tag is additive-only against the previous contract release
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="${GITHUB_REF_NAME}"
+          # Contract compatibility is governed by v<semver> tags only; the
+          # gen/go/v* aliases are Go module pointers, not contract versions.
+          previous=$(git tag --list 'v[0-9]*' --sort=-version:refname \
+            | grep -v -x "$current" | head -n 1 || true)
+          if [[ -z "$previous" ]]; then
+            echo "No previous contract tag; skipping breaking-change gate for the first release."
+          else
+            echo "Checking breaking changes against previous contract tag ${previous}"
+            buf breaking --against ".git#tag=${previous}"
+          fi
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: gen/go/go.mod
+          cache: true
+      - name: Install pinned code generation plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+      - name: Verify committed generated code is reproducible
+        shell: bash
+        run: |
+          set -euo pipefail
+          buf generate
+          if ! git diff --exit-code -- gen/go; then
+            echo "Generated code is stale; run 'buf generate' and commit the result." >&2
+            exit 1
+          fi
+      - name: Build the generated Go module
+        working-directory: gen/go
+        run: |
+          go mod download
+          go build ./...
+          go vet ./...
+      - name: Build the release descriptor set
+        run: |
+          buf build --include-imports \
+            -o "blueeconomy-contracts-${GITHUB_REF_NAME//\//-}.descriptor.binpb"
+      - name: Upload descriptor set artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: 'blueeconomy-contracts-${GITHUB_REF_NAME//\//-}-descriptor'
+          path: 'blueeconomy-contracts-${GITHUB_REF_NAME//\//-}.descriptor.binpb'
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@9672cee01808979ea1249f81d6d321217b9a10f6 # v1.47.2
+      - name: Build the release descriptor set
+        run: |
+          buf build --include-imports \
+            -o "blueeconomy-contracts-${GITHUB_REF_NAME//\//-}.descriptor.binpb"
+      - name: Create GitHub release with descriptor set attached
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          asset="blueeconomy-contracts-${tag//\//-}.descriptor.binpb"
+          cat > release-notes.md <<EOF
+          # Blue Economy Platform Contracts ${tag}
+
+          Contract release cut from commit ${GITHUB_SHA}.
+
+          ## Compatibility
+
+          - Buf FILE breaking-change gate against the previous contract tag:
+            passed (first release exempt when no previous tag exists).
+          - v1 contracts are additive-only; see README "Versioning policy"
+            and docs/contract-lifecycle.md.
+
+          ## Artifacts
+
+          - ${asset}: Protocol Buffers descriptor set (imports included) for
+            this release.
+
+          ## Consuming
+
+          Go consumers pin the generated module:
+
+              go get github.com/munisp/blueeconomy-contracts/gen/go@${tag}
+
+          ## Changes
+
+          <!-- Release manager: summarize contract changes and link the
+               governing migration decision here before publishing. -->
+          EOF
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists; refusing to mutate it (fail-closed)." >&2
+            exit 1
+          fi
+          gh release create "$tag" \
+            --title "Contracts ${tag}" \
+            --notes-file release-notes.md \
+            "$asset"

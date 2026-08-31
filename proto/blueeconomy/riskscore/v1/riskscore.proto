@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package blueeconomy.riskscore.v1;
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/riskscore/v1;riskscorev1";
+
+// RiskScoreService is the first platform gRPC service contract (Phase-7,
+// register rows PRA-066..068): the declaration risk-scorer behind
+// blueeconomy-financial-controls (internal/riskscore, cmd/declaration-scorer)
+// consumed synchronously by blueeconomy-port-interoperability.
+//
+// Scoring is deterministic and rules-based only — amount bands, HS-prefix
+// risk, country risk and new-trader flags evaluated against versioned config
+// data. There is no ML model and no ML claim: every response carries
+// model_version and rule_based = true.
+//
+// Error model (fail closed in both directions):
+//   - INVALID_ARGUMENT: the request violates the field contract below. Never
+//     retried by callers; the payload must be fixed.
+//   - UNAUTHENTICATED: the Keycloak RS256 bearer token (authorization
+//     metadata) is absent or unverifiable — wrong issuer, unknown signing
+//     key, expired, or audience/azp not equal to the scorer's approved
+//     audience. Never retried by callers without a new token.
+//   - UNAVAILABLE: the scorer cannot serve right now. This, together with
+//     DEADLINE_EXCEEDED, is the only retryable class; callers retry with
+//     bounded exponential backoff and jitter and otherwise fail closed.
+//
+// Authentication is required on every RPC: a Keycloak client_credentials
+// service-account token whose audience matches the scorer's configured
+// KEYCLOAK_EXPECTED_AUDIENCE (contract value "declaration-scorer"). Only the
+// gRPC health-check and server-reflection endpoints are public.
+service RiskScoreService {
+  // ScoreDeclaration scores one customs declaration snapshot. The RPC is
+  // idempotent: identical requests always produce identical responses for a
+  // given model version.
+  rpc ScoreDeclaration(ScoreDeclarationRequest) returns (ScoreDeclarationResponse);
+}
+
+// ScoreDeclarationRequest mirrors the scorer's HTTP POST /v1/risk-scores
+// payload exactly. Validation (enforced server-side, INVALID_ARGUMENT on any
+// violation): declaration_ref is a canonical reference; hs_code is 2-10
+// digits; country_of_origin (and country_of_destination when present) is ISO
+// 3166-1 alpha-2; invoice_currency is ISO 4217 upper-case;
+// invoice_amount_minor, gross_weight_kg and number_of_packages are
+// non-negative; trader_id is non-empty.
+message ScoreDeclarationRequest {
+  // Service-assigned immutable declaration reference.
+  string declaration_ref = 1;
+  // Declaration type as declared (e.g. IMPORT, EXPORT, TRANSIT).
+  string declaration_type = 2;
+  // HS code of the goods, 2-10 digits.
+  string hs_code = 3;
+  // Free-text goods description (scoring metadata only).
+  string goods_description = 4;
+  // ISO 3166-1 alpha-2 country of origin.
+  string country_of_origin = 5;
+  // ISO 3166-1 alpha-2 country of destination; empty when not applicable.
+  string country_of_destination = 6;
+  // Port of entry code.
+  string port_of_entry = 7;
+  // Gross weight in whole kilograms, non-negative.
+  int64 gross_weight_kg = 8;
+  // Number of packages, non-negative.
+  int32 number_of_packages = 9;
+  // Invoice amount in minor units of invoice_currency, non-negative.
+  int64 invoice_amount_minor = 10;
+  // ISO 4217 upper-case invoice currency.
+  string invoice_currency = 11;
+  // Tokenized consignee reference.
+  string consignee_id = 12;
+  // Tokenized operator reference.
+  string operator_id = 13;
+  // Trader registry identifier; unknown traders score the new-trader flag.
+  string trader_id = 14;
+  // Server-verified authorised economic operator status.
+  bool is_aeo = 15;
+}
+
+// ScoreDeclarationResponse is the deterministic verdict. Lane assignment is
+// never part of this contract: consumers compute lanes locally from score.
+message ScoreDeclarationResponse {
+  // Risk score in [0,100]; 100 is forced when a sanctioned country is
+  // involved (fail-closed maximum signal).
+  int32 score = 1;
+  // Version of the rules model that produced the score; always non-empty.
+  string model_version = 2;
+  // Always true: scoring is rules-based only, no ML is used or claimed.
+  bool rule_based = 3;
+  // True when a sanctioned country is involved (score is forced to 100).
+  bool sanctioned = 4;
+  // Human-readable, deterministic scoring reasons (points per rule hit).
+  repeated string reasons = 5;
+}

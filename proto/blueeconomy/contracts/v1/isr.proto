@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream F: maritime intelligence, surveillance and reconnaissance
+// (maritime.isr.v1, maritime.behaviour.v1, maritime.outcome.v1 topics). Each
+// message is a domain resource transported as the primary resource of an
+// EventEnvelope FHIR message Bundle. Sensor payloads, raw tracks and
+// evidentiary material stay inside the ISR boundary; events carry tokenized
+// references, digests and enum-governed classifications only. The per-event
+// SecurityClassification below governs ISR content and is deliberately
+// distinct from the envelope-level EnvelopeClassification.
+
+// IsrModality is the fail-closed set of collection modalities admitted onto the
+// ISR event boundary. Free-text modality values are prohibited.
+enum IsrModality {
+  ISR_MODALITY_UNSPECIFIED = 0;
+  ISR_MODALITY_AIS = 1;
+  ISR_MODALITY_SAR = 2;
+  ISR_MODALITY_RF = 3;
+  ISR_MODALITY_ACOUSTIC = 4;
+  ISR_MODALITY_OPTICAL = 5;
+}
+
+// SecurityClassification is the fail-closed handling classification of ISR
+// content. The value names are prefixed so they cannot collide with the
+// envelope-level EnvelopeClassification values.
+enum SecurityClassification {
+  SECURITY_CLASSIFICATION_UNSPECIFIED = 0;
+  SECURITY_CLASSIFICATION_UNCLASSIFIED = 1;
+  SECURITY_CLASSIFICATION_RESTRICTED = 2;
+  SECURITY_CLASSIFICATION_CONFIDENTIAL_CLASSIFICATION = 3;
+  SECURITY_CLASSIFICATION_SECRET = 4;
+}
+
+// AnomalyRule is the fail-closed set of behavioural analytics rules that may
+// raise a track anomaly. Free-text rule names are prohibited.
+enum AnomalyRule {
+  ANOMALY_RULE_UNSPECIFIED = 0;
+  ANOMALY_RULE_DARK_VESSEL = 1;
+  ANOMALY_RULE_SPEED_OUTLIER = 2;
+  ANOMALY_RULE_RENDEZVOUS = 3;
+  ANOMALY_RULE_LOITERING_RESTRICTED_ZONE = 4;
+}
+
+// ResponseStage is the fail-closed lifecycle stage of an ISR response.
+// Free-text stage values are prohibited.
+enum ResponseStage {
+  RESPONSE_STAGE_UNSPECIFIED = 0;
+  RESPONSE_STAGE_ALERT = 1;
+  RESPONSE_STAGE_CLASSIFICATION = 2;
+  RESPONSE_STAGE_DISPATCH = 3;
+  RESPONSE_STAGE_INTERDICTION = 4;
+  RESPONSE_STAGE_OUTCOME_CAPTURE = 5;
+}
+
+// IsrEventAdmitted records an ISR observation admitted after authentication,
+// schema validation and durable persistence. It is not a raw sensor packet:
+// only the payload digest and resolvable references are carried.
+message IsrEventAdmitted {
+  // Service-assigned immutable ISR event identifier.
+  string isr_event_id = 1;
+  IsrModality modality = 2;
+  SecurityClassification security_classification = 3;
+  // Tokenized sensor or collector reference held by the ISR service.
+  string sensor_reference = 4;
+  // Opaque reference resolvable inside the ISR boundary to the admitted
+  // observation.
+  string observation_reference = 5;
+  // Digest of the canonical observation payload; raw sensor payloads are not
+  // carried in the event.
+  string payload_digest_sha256 = 6;
+  google.protobuf.Timestamp observed_at = 7;
+}
+
+// TrackAnomalyDetected records a behavioural analytics rule firing against a
+// fused vessel track. Tracks and correlation subjects are tokenized
+// references; raw track history is not carried.
+message TrackAnomalyDetected {
+  string anomaly_id = 1;
+  AnomalyRule rule = 2;
+  // Tokenized track reference held by the fusion service.
+  string track_reference = 3;
+  // Tokenized references of correlated tracks, ISR events or incidents
+  // supporting the anomaly.
+  repeated string correlation_references = 4;
+  SecurityClassification security_classification = 5;
+  Severity severity_level = 6;
+  // Digest of the evidence package supporting the detection; raw evidence is
+  // not carried in the event.
+  string evidence_digest_sha256 = 7;
+  google.protobuf.Timestamp detected_at = 8;
+}
+
+// IsrResponseTransitioned records a state transition of an ISR response and is
+// replay-safe by response_id. Consumers must fail closed when stage is
+// UNSPECIFIED.
+message IsrResponseTransitioned {
+  string response_id = 1;
+  // Incident reference shared across the response lifecycle.
+  string incident_reference = 2;
+  ResponseStage prior_stage = 3;
+  ResponseStage stage = 4;
+  // Stable machine-readable reason code for the transition.
+  string transition_reason_code = 5;
+  // Digest of the transition order or tasking artefact; raw artefacts are not
+  // carried in the event.
+  string transition_digest_sha256 = 6;
+  google.protobuf.Timestamp transitioned_at = 7;
+}
+
+// OutcomeLedgerPosted anchors an interdiction outcome into the outcome ledger
+// so premium-delta adjustments can be evidenced without copying case files
+// onto the bus.
+message OutcomeLedgerPosted {
+  string outcome_entry_id = 1;
+  // Incident reference whose outcome is anchored.
+  string incident_reference = 2;
+  // Digest of the premium-delta evidence package; raw evidence is not carried
+  // in the event.
+  string premium_delta_evidence_digest_sha256 = 3;
+  // Hash of the previous outcome-ledger entry, forming the tamper-evident
+  // chain. Empty for the first entry.
+  string previous_entry_hash = 4;
+  // Ledger height or sequence of the entry.
+  uint64 entry_sequence = 5;
+  google.protobuf.Timestamp posted_at = 6;
+}

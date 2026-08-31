@@ -1,0 +1,336 @@
+syntax = "proto3";
+
+package blueeconomy.msw.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/msw/v1;mswv1";
+
+// Phase 9: IMO FAL Maritime Single Window ship-clearance events
+// (maritime.msw.v1 topic). Each message is a domain resource transported as
+// the primary resource of an EventEnvelope FHIR message Bundle. The module
+// implements the FAL.14(46) single-window mandate (in force 2024-01-01):
+// FAL forms 1-7 plus the Maritime Declaration of Health (IHR 2005) are
+// submitted once, re-used maximally across agencies, and adjudicated under
+// the NPPM 2021 joint-boarding order — Port Health boards FIRST and grants
+// pratique before NIS, NCS, NDLEA and NIMASA board jointly. Visits anchor to
+// port-call records owned by the port-interoperability boundary via
+// port_call_id; port-call fields are never duplicated into these events.
+// FAL form payloads, crew/passenger lists and health records stay inside the
+// producing boundary; events carry identifiers, tokenized references and
+// digests only. Envelope classification floors (docs/msw.md): payloads that
+// carry crew/passenger/health personal data (NDPA PERSONAL category) floor
+// the envelope at RESTRICTED with record_classification set; security-adjacent
+// events (NDLEA boarding, clearance decisions) floor at CONFIDENTIAL. See
+// docs/msw.md.
+
+// MswFormType is the fail-closed FAL declaration form taxonomy. Data sets
+// per form follow the IMO Compendium (FAL.5/Circ.45); authentication and
+// integrity follow FAL.5/Circ.46. The canonical JSON wire form renders these
+// values without the MSW_FORM_TYPE_ prefix (for example MSW_FORM_TYPE_FAL1
+// renders as "FAL1"); consumers must fail closed on any other value.
+enum MswFormType {
+  MSW_FORM_TYPE_UNSPECIFIED = 0;
+  // FAL 1: General Declaration.
+  MSW_FORM_TYPE_FAL1 = 1;
+  // FAL 2: Cargo Declaration.
+  MSW_FORM_TYPE_FAL2 = 2;
+  // FAL 3: Ship's Stores Declaration.
+  MSW_FORM_TYPE_FAL3 = 3;
+  // FAL 4: Crew's Effects Declaration (personal data).
+  MSW_FORM_TYPE_FAL4 = 4;
+  // FAL 5: Crew List (personal data).
+  MSW_FORM_TYPE_FAL5 = 5;
+  // FAL 6: Passenger List (personal data).
+  MSW_FORM_TYPE_FAL6 = 6;
+  // FAL 7: Dangerous Goods Manifest.
+  MSW_FORM_TYPE_FAL7 = 7;
+  // Maritime Declaration of Health (IHR 2005; personal health data).
+  MSW_FORM_TYPE_MDOH = 8;
+}
+
+// MswAgency is the fail-closed set of Nigerian border agencies participating
+// in the single window and the NPPM 2021 joint-boarding regime. The
+// canonical JSON wire form renders these values without the MSW_AGENCY_
+// prefix (for example MSW_AGENCY_PORT_HEALTH renders as "PORT_HEALTH");
+// consumers must fail closed on any other value.
+enum MswAgency {
+  MSW_AGENCY_UNSPECIFIED = 0;
+  // Port Health Services: boards first and grants or refuses pratique.
+  MSW_AGENCY_PORT_HEALTH = 1;
+  // Nigeria Immigration Service.
+  MSW_AGENCY_NIS = 2;
+  // Nigeria Customs Service.
+  MSW_AGENCY_NCS = 3;
+  // National Drug Law Enforcement Agency.
+  MSW_AGENCY_NDLEA = 4;
+  // Nigerian Maritime Administration and Safety Agency.
+  MSW_AGENCY_NIMASA = 5;
+  // Nigerian Ports Authority.
+  MSW_AGENCY_NPA = 6;
+}
+
+// MswVisitStatus is the fail-closed lifecycle status of an MSW ship visit.
+// Legal forward transitions: DRAFT -> SUBMITTED -> UNDER_REVIEW ->
+// CLEARED_TO_ENTER -> IN_PORT -> CLEARED_TO_DEPART -> DEPARTED; CANCELLED is
+// a terminal branch from any non-terminal status. Consumers must fail closed
+// on UNSPECIFIED.
+enum MswVisitStatus {
+  MSW_VISIT_STATUS_UNSPECIFIED = 0;
+  MSW_VISIT_STATUS_DRAFT = 1;
+  MSW_VISIT_STATUS_SUBMITTED = 2;
+  MSW_VISIT_STATUS_UNDER_REVIEW = 3;
+  MSW_VISIT_STATUS_CLEARED_TO_ENTER = 4;
+  MSW_VISIT_STATUS_IN_PORT = 5;
+  MSW_VISIT_STATUS_CLEARED_TO_DEPART = 6;
+  MSW_VISIT_STATUS_DEPARTED = 7;
+  MSW_VISIT_STATUS_CANCELLED = 8;
+}
+
+// MswClearanceKind is the fail-closed kind of a port clearance decision.
+enum MswClearanceKind {
+  MSW_CLEARANCE_KIND_UNSPECIFIED = 0;
+  // Clearance to enter (arrival).
+  MSW_CLEARANCE_KIND_ARRIVAL = 1;
+  // Clearance to depart: requires every submitted FAL form accepted, pratique
+  // granted and joint boarding completed — enforced at the producing boundary
+  // before this event may be emitted.
+  MSW_CLEARANCE_KIND_DEPARTURE = 2;
+}
+
+// MswVisitCreated records the declaration of a ship visit in the single
+// window (event type maritime.msw.visit_created.v1). The visit may anchor to
+// a port-call record owned by the port-interoperability boundary; unlinked
+// visits are permitted but are honestly flagged (port_call_verified=false),
+// never presented as verified. Vessel identity is asserted by the declaring
+// agent and verified against the port-call record at the producing boundary
+// when linked; no ETA or vessel data is fabricated by the platform.
+message MswVisitCreated {
+  // Service-assigned immutable visit identifier.
+  string visit_id = 1;
+  // Port-call identifier owned by the port-interoperability boundary.
+  // Absent when the visit is not (yet) linked to a port call.
+  optional string port_call_id = 2;
+  // True only when the visit is linked to a port call and the vessel
+  // identity was verified against it. False is the honest state for unlinked
+  // or unverifiable visits (PORT_CALL_UNVERIFIED / PORT_CALL_UNAVAILABLE at
+  // the producing boundary).
+  bool port_call_verified = 3;
+  // IMO ship identification number (7 decimal digits, no prefix).
+  string vessel_imo_number = 4;
+  string vessel_name = 5;
+  // Vessel flag state, ISO 3166-1 alpha-2 code.
+  string vessel_flag_code = 6;
+  // UN/LOCODE of the port of call (for example "NGLOS").
+  string port_code = 7;
+  // Tokenized reference of the declaring shipping-agent organization.
+  string agent_reference = 8;
+  google.protobuf.Timestamp eta = 9;
+  // Estimated time of departure when declared; absent when not yet declared.
+  optional google.protobuf.Timestamp etd = 10;
+  // Visit status at emission (MSW_VISIT_STATUS_DRAFT or
+  // MSW_VISIT_STATUS_SUBMITTED at creation).
+  MswVisitStatus status = 11;
+  google.protobuf.Timestamp declared_at = 12;
+}
+
+// MswDeclarationSubmitted records the submission of one FAL form (or MDOH)
+// for a visit (event type maritime.msw.declaration_submitted.v1). The form
+// payload is schema-validated per the IMO Compendium at the producing
+// boundary and retained there; the event carries only its digest. Under the
+// single-submission principle (UNECE Rec-33) a re-submission creates a new
+// version chained to the prior submission by digest; nothing is duplicated
+// to other agencies — agency visibility is governed by PBAC roles at the
+// consuming boundary.
+message MswDeclarationSubmitted {
+  // Service-assigned immutable declaration identifier.
+  string declaration_id = 1;
+  string visit_id = 2;
+  MswFormType form_type = 3;
+  // Monotonic per-(visit, form_type) version, starting at 1.
+  uint32 version = 4;
+  // Digest of the schema-validated form payload
+  // ("sha256:<64 lowercase hex>"); the payload stays inside the producing
+  // boundary.
+  string form_payload_digest_sha256 = 5;
+  // Digest of the prior submission of the same form for the same visit;
+  // empty on version 1.
+  string prior_submission_digest_sha256 = 6;
+  // True when the form carries crew/passenger/health personal data (FAL4,
+  // FAL5, FAL6, MDOH): the NDPA PERSONAL category; such envelopes floor at
+  // classification RESTRICTED and carry record_classification (docs/msw.md).
+  bool contains_personal_data = 7;
+  google.protobuf.Timestamp submitted_at = 8;
+}
+
+// MswDeclarationAccepted records an authority's acceptance of a submitted
+// declaration version (event type maritime.msw.declaration_accepted.v1).
+// Acceptance is a maker-checker decision at the producing boundary: the
+// reviewing principal (envelope provenance) is never the submitting
+// principal.
+message MswDeclarationAccepted {
+  string declaration_id = 1;
+  string visit_id = 2;
+  MswFormType form_type = 3;
+  uint32 version = 4;
+  // Agency whose officer accepted the declaration.
+  MswAgency reviewing_agency = 5;
+  // Digest of the review record ("sha256:<64 lowercase hex>"); the review
+  // note stays inside the producing boundary.
+  string review_note_digest_sha256 = 6;
+  google.protobuf.Timestamp decided_at = 7;
+}
+
+// MswDeclarationReturned records an authority's return of a submitted
+// declaration version for correction (event type
+// maritime.msw.declaration_returned.v1). A returned declaration is
+// re-submitted as a new version; the returned version is never edited.
+message MswDeclarationReturned {
+  string declaration_id = 1;
+  string visit_id = 2;
+  MswFormType form_type = 3;
+  uint32 version = 4;
+  // Agency whose officer returned the declaration.
+  MswAgency reviewing_agency = 5;
+  // Stable machine-readable reason code for the return.
+  string return_reason_code = 6;
+  // Digest of the review record ("sha256:<64 lowercase hex>"); the review
+  // note stays inside the producing boundary.
+  string review_note_digest_sha256 = 7;
+  google.protobuf.Timestamp decided_at = 8;
+}
+
+// MswPratiqueGranted records the grant of free pratique by Port Health
+// (event type maritime.msw.pratique_granted.v1). This is the NPPM 2021
+// ordering pivot: no NIS, NCS, NDLEA or NIMASA boarding may be scheduled or
+// completed, and no clearance decided, before this event exists for the
+// visit. Grant decisions reference the Maritime Declaration of Health they
+// were based on.
+message MswPratiqueGranted {
+  string visit_id = 1;
+  // Declaration identifier of the MDOH the grant is based on.
+  string health_declaration_reference = 2;
+  // Tokenized reference of the Port Health officer granting pratique.
+  string granted_by_reference = 3;
+  google.protobuf.Timestamp granted_at = 4;
+}
+
+// MswPratiqueRefused records Port Health's refusal of free pratique (event
+// type maritime.msw.pratique_refused.v1). A refusal blocks all downstream
+// boarding and clearance until a subsequent grant; quarantine measures are
+// recorded inside the producing boundary.
+message MswPratiqueRefused {
+  string visit_id = 1;
+  // Declaration identifier of the MDOH the refusal is based on.
+  string health_declaration_reference = 2;
+  // Tokenized reference of the Port Health officer refusing pratique.
+  string refused_by_reference = 3;
+  // Stable machine-readable reason code for the refusal.
+  string refusal_reason_code = 4;
+  // Digest of the refusal record ("sha256:<64 lowercase hex>"); the record
+  // stays inside the producing boundary.
+  string refusal_record_digest_sha256 = 5;
+  google.protobuf.Timestamp refused_at = 6;
+}
+
+// MswBoardingScheduled records the scheduling of a boarding party for a
+// visit (event type maritime.msw.boarding_scheduled.v1). The agency set is
+// fail-closed. Under NPPM 2021, Port Health boards first; a party containing
+// NIS, NCS, NDLEA or NIMASA may only be scheduled for a time after pratique
+// was granted, and the joint agencies board jointly — the producing boundary
+// refuses any schedule that violates this ordering (PRATIQUE_REQUIRED).
+message MswBoardingScheduled {
+  // Service-assigned immutable boarding identifier.
+  string boarding_id = 1;
+  string visit_id = 2;
+  // Agencies forming the boarding party. Non-empty; UNSPECIFIED members are
+  // invalid on the wire.
+  repeated MswAgency agencies = 3;
+  // Agency whose officer scheduled the boarding.
+  MswAgency scheduled_by_agency = 4;
+  // Scheduled boarding time (window start).
+  google.protobuf.Timestamp scheduled_at = 5;
+  // Digest of the scheduling record ("sha256:<64 lowercase hex>"); the
+  // record stays inside the producing boundary. Empty when no note exists.
+  string schedule_note_digest_sha256 = 6;
+}
+
+// MswBoardingCompleted records the completion of a boarding party (event
+// type maritime.msw.boarding_completed.v1). For any party containing NIS,
+// NCS, NDLEA or NIMASA, pratique_reference is mandatory and binds the
+// completion to the antecedent pratique grant — the pratique-first invariant
+// (NPPM 2021). Events involving NDLEA are security-adjacent and floor the
+// envelope classification at CONFIDENTIAL (docs/msw.md).
+message MswBoardingCompleted {
+  string boarding_id = 1;
+  string visit_id = 2;
+  // Agencies that actually boarded. Non-empty; UNSPECIFIED members are
+  // invalid on the wire.
+  repeated MswAgency agencies = 3;
+  google.protobuf.Timestamp started_at = 4;
+  google.protobuf.Timestamp completed_at = 5;
+  // Digest of the visit's pratique grant record ("sha256:<64 lowercase
+  // hex>"), binding this completion to the antecedent MswPratiqueGranted
+  // fact. Mandatory when agencies contains NIS, NCS, NDLEA or NIMASA; empty
+  // only for PORT_HEALTH-only boardings. Consumers must fail closed on a
+  // non-Port-Health completion without it.
+  string pratique_grant_digest_sha256 = 6;
+  // Digest of the boarding outcome record ("sha256:<64 lowercase hex>");
+  // findings stay inside the producing boundary.
+  string outcome_digest_sha256 = 7;
+}
+
+// MswClearanceGranted records the grant of an arrival or departure clearance
+// (event type maritime.msw.clearance_granted.v1). A DEPARTURE clearance is
+// emitted only after every submitted FAL form version is accepted, pratique
+// is granted and the joint boarding is completed; the precondition checklist
+// digest binds the exact evaluated precondition set at decision time.
+// Clearance decisions are security-adjacent and floor the envelope
+// classification at CONFIDENTIAL (docs/msw.md).
+message MswClearanceGranted {
+  // Service-assigned immutable clearance identifier.
+  string clearance_id = 1;
+  string visit_id = 2;
+  MswClearanceKind kind = 3;
+  // Agency whose officer decided the clearance.
+  MswAgency decided_by_agency = 4;
+  // Digest of the evaluated precondition checklist
+  // ("sha256:<64 lowercase hex>"); mandatory for DEPARTURE, empty for
+  // ARRIVAL. Consumers must fail closed on a DEPARTURE grant without it.
+  string precondition_checklist_digest_sha256 = 5;
+  // Digest of the clearance conditions record; empty when the clearance is
+  // unconditional.
+  string conditions_digest_sha256 = 6;
+  google.protobuf.Timestamp decided_at = 7;
+}
+
+// MswClearanceRefused records the refusal of an arrival or departure
+// clearance (event type maritime.msw.clearance_refused.v1). Refusals are
+// attributed decisions with a stable reason code; the refusal record stays
+// inside the producing boundary. Clearance decisions are security-adjacent
+// and floor the envelope classification at CONFIDENTIAL (docs/msw.md).
+message MswClearanceRefused {
+  string clearance_id = 1;
+  string visit_id = 2;
+  MswClearanceKind kind = 3;
+  // Agency whose officer decided the refusal.
+  MswAgency decided_by_agency = 4;
+  // Stable machine-readable reason code for the refusal.
+  string refusal_reason_code = 5;
+  // Digest of the refusal record ("sha256:<64 lowercase hex>").
+  string refusal_record_digest_sha256 = 6;
+  google.protobuf.Timestamp decided_at = 7;
+}
+
+// MswAgentNominated records the nomination of a shipping agent for a visit
+// (event type maritime.msw.agent_nominated.v1). The nomination instrument is
+// retained inside the producing boundary; the event carries its digest.
+message MswAgentNominated {
+  string visit_id = 1;
+  // Tokenized reference of the nominated shipping-agent organization.
+  string agent_reference = 2;
+  // Digest of the nomination instrument ("sha256:<64 lowercase hex>"); the
+  // instrument stays inside the producing boundary.
+  string nomination_document_digest_sha256 = 3;
+  google.protobuf.Timestamp nominated_at = 4;
+}

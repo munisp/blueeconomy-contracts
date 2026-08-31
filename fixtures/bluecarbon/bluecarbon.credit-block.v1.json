@@ -1,0 +1,42 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-bluecarbon-000004",
+  "eventType": "bluecarbon.credit-block.v1",
+  "occurredAt": "2026-08-29T14:00:00Z",
+  "producer": "blueeconomy-financial-controls",
+  "correlationId": "corr-bluecarbon-000004",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-bluecarbon-000004",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:9e24a4ec-b332-5fdf-a3f4-463d3e473555",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.BlueCarbonCreditBlockIssued",
+          "blockId": "bcb-000001",
+          "serial": "NG-BCR-0007-VERRA_VM0033_V2_1-2025-1-3000",
+          "projectId": "bcp-000007",
+          "reportId": "bcr-000001",
+          "vintageYear": 2025,
+          "blockStart": "1",
+          "blockEnd": "3000",
+          "quantityTco2eMilli": "3000000",
+          "holderAccountReference": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+          "status": "ACTIVE",
+          "authorization": "AER_NDC",
+          "correspondingAdjustment": true,
+          "firstTransferred": false,
+          "issuedAt": "2026-08-25T12:00:00Z"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "bluecarbon-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWZpbmFuY2lhbC1jb250cm9scy0wIn0.eyJjbGFzc2lmaWNhdGlvbiI6IklOVEVSTkFMIiwiY29ycmVsYXRpb25JZCI6ImNvcnItYmx1ZWNhcmJvbi0wMDAwMDQiLCJlbnZlbG9wZVZlcnNpb24iOiIxLjAiLCJldmVudElkIjoiZXZ0LWJsdWVjYXJib24tMDAwMDA0IiwiZXZlbnRUeXBlIjoiYmx1ZWNhcmJvbi5jcmVkaXQtYmxvY2sudjEiLCJmaGlyIjp7ImJ1bmRsZUlkIjoiYmRsLWJsdWVjYXJib24tMDAwMDA0IiwiZW50cnkiOlt7ImZ1bGxVcmwiOiJ1cm46dXVpZDo5ZTI0YTRlYy1iMzMyLTVmZGYtYTNmNC00NjNkM2U0NzM1NTUiLCJyZXNvdXJjZSI6eyJAdHlwZSI6InR5cGUuZ29vZ2xlYXBpcy5jb20vYmx1ZWVjb25vbXkuY29udHJhY3RzLnYxLkJsdWVDYXJib25DcmVkaXRCbG9ja0lzc3VlZCIsImF1dGhvcml6YXRpb24iOiJBRVJfTkRDIiwiYmxvY2tFbmQiOiIzMDAwIiwiYmxvY2tJZCI6ImJjYi0wMDAwMDEiLCJibG9ja1N0YXJ0IjoiMSIsImNvcnJlc3BvbmRpbmdBZGp1c3RtZW50Ijp0cnVlLCJmaXJzdFRyYW5zZmVycmVkIjpmYWxzZSwiaG9sZGVyQWNjb3VudFJlZmVyZW5jZSI6ImExYjJjM2Q0ZTVmNjA3MTgyOTNhNGI1YzZkN2U4ZjkwIiwiaXNzdWVkQXQiOiIyMDI2LTA4LTI1VDEyOjAwOjAwWiIsInByb2plY3RJZCI6ImJjcC0wMDAwMDciLCJxdWFudGl0eVRjbzJlTWlsbGkiOiIzMDAwMDAwIiwicmVwb3J0SWQiOiJiY3ItMDAwMDAxIiwic2VyaWFsIjoiTkctQkNSLTAwMDctVkVSUkFfVk0wMDMzX1YyXzEtMjAyNS0xLTMwMDAiLCJzdGF0dXMiOiJBQ1RJVkUiLCJ2aW50YWdlWWVhciI6MjAyNX19XSwicmVzb3VyY2VUeXBlIjoiQnVuZGxlIiwidHlwZSI6Im1lc3NhZ2UifSwib2NjdXJyZWRBdCI6IjIwMjYtMDgtMjlUMTQ6MDA6MDBaIiwicHJvZHVjZXIiOiJibHVlZWNvbm9teS1maW5hbmNpYWwtY29udHJvbHMiLCJwcm92ZW5hbmNlIjp7ImxlZGdlckNvbW1pdEhhc2giOiIiLCJwcmluY2lwYWxJZCI6ImY0N2FjMTBiLTU4Y2MtNDM3Mi1hNTY3LTBlMDJiMmMzZDQ3OSIsInByaW5jaXBhbFJvbGUiOiJibHVlY2FyYm9uLXByb2R1Y2VyIn19.9H2U7pXkXL7IatCLdjhfj2QbVeo12bN8szVwF1bfiib585e-EuLEHjH--9G153wafBhRz7Tp0-jAOvgGNqroDQ"
+  },
+  "classification": "INTERNAL"
+}

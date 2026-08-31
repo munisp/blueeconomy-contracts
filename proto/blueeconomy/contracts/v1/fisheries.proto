@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "blueeconomy/contracts/v1/common.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Workstream E: fisheries catch, cold chain and export custody
+// (fisheries.catch.v1, coldchain.telemetry.v1, export.consignment.v1 topics).
+// Each message is a domain resource transported as the primary resource of an
+// EventEnvelope FHIR message Bundle. Vessels, operators and custodians are
+// tokenized references; positions are fixed-point integers; floating-point
+// weights, temperatures and coordinates are prohibited.
+
+// SpeciesCode is the governed catch species set permitted on platform catch
+// records, aligned with the platform's FAO ASFIS code list. SPECIES_CODE_OTHER
+// is the explicit escape hatch and requires species_supplement_code to be
+// populated with a stable machine-readable code. Free-text species names are
+// prohibited.
+enum SpeciesCode {
+  SPECIES_CODE_UNSPECIFIED = 0;
+  SPECIES_CODE_SKIPJACK_TUNA = 1;
+  SPECIES_CODE_YELLOWFIN_TUNA = 2;
+  SPECIES_CODE_SARDINELLA = 3;
+  SPECIES_CODE_CROAKER = 4;
+  SPECIES_CODE_SHRIMP = 5;
+  SPECIES_CODE_OTHER = 6;
+}
+
+// CustodyStage is the fail-closed custody-chain stage at which a handoff
+// completes. Free-text stage values are prohibited.
+enum CustodyStage {
+  CUSTODY_STAGE_UNSPECIFIED = 0;
+  CUSTODY_STAGE_CATCH = 1;
+  CUSTODY_STAGE_LANDING = 2;
+  CUSTODY_STAGE_COLDCHAIN_TRANSIT = 3;
+  CUSTODY_STAGE_PROCESSOR = 4;
+  CUSTODY_STAGE_EXPORTER = 5;
+  CUSTODY_STAGE_IMPORT_RECEIPT = 6;
+}
+
+// FraudRule is the fail-closed set of fraud-detection rules that may raise a
+// flag. Free-text rule names are prohibited.
+enum FraudRule {
+  FRAUD_RULE_UNSPECIFIED = 0;
+  FRAUD_RULE_CAPACITY_EXCEEDED = 1;
+  FRAUD_RULE_SPECIES_MIX_ANOMALY = 2;
+  FRAUD_RULE_IMPOSSIBLE_SPEED = 3;
+}
+
+// CatchRecorded records a validated catch event for a vessel trip. Weight is
+// integer kilograms only; the position is fixed-point micro-degrees.
+message CatchRecorded {
+  // Service-assigned immutable catch record identifier.
+  string catch_record_id = 1;
+  // Voyage or fishing trip reference.
+  string trip_reference = 2;
+  // Tokenized vessel reference held by the fisheries service.
+  string vessel_reference = 3;
+  // Tokenized operator reference.
+  string operator_reference = 4;
+  SpeciesCode species = 5;
+  // Stable machine-readable species code; required when species is
+  // SPECIES_CODE_OTHER and must be empty otherwise. Consumers must fail closed
+  // on violation.
+  string species_supplement_code = 6;
+  // Catch weight in whole kilograms. Integer only; floating-point weights are
+  // prohibited.
+  uint64 weight_kg = 7;
+  // Latitude in micro-degrees (degrees scaled by 1e6, for example 6425000
+  // for 6.425 degrees). Fixed-point only; floating-point coordinates are
+  // prohibited.
+  int32 latitude_micros = 8;
+  // Longitude in micro-degrees (degrees scaled by 1e6).
+  int32 longitude_micros = 9;
+  google.protobuf.Timestamp caught_at = 10;
+}
+
+// ColdChainBreachAlerted records a temperature threshold breach for a
+// consignment in cold-chain custody. Temperatures are integer milli-degrees
+// Celsius; floating-point temperatures are prohibited.
+message ColdChainBreachAlerted {
+  string alert_id = 1;
+  // Tokenized consignment reference held by the cold-chain service.
+  string consignment_reference = 2;
+  // Breached threshold in milli-degrees Celsius (milli-Celsius, for example
+  // -18000000 for -18.0 degrees C).
+  int32 threshold_millicelsius = 3;
+  // Observed temperature in milli-degrees Celsius.
+  int32 observed_millicelsius = 4;
+  // Duration the observed temperature remained beyond the threshold.
+  google.protobuf.Duration breach_duration = 5;
+  // Digest of the canonical telemetry segment evidencing the breach; raw
+  // telemetry streams are not carried in the event.
+  string telemetry_digest_sha256 = 6;
+  google.protobuf.Timestamp observed_at = 7;
+}
+
+// CustodyHandoffCompleted records a completed chain-of-custody handoff for a
+// consignment between two custodians at a governed stage.
+message CustodyHandoffCompleted {
+  string handoff_id = 1;
+  // Tokenized consignment reference.
+  string consignment_reference = 2;
+  CustodyStage stage = 3;
+  // Tokenized releasing custodian reference.
+  string from_custodian_reference = 4;
+  // Tokenized receiving custodian reference.
+  string to_custodian_reference = 5;
+  // Digest of the signed handoff artefact; raw artefacts are not carried.
+  string handoff_digest_sha256 = 6;
+  google.protobuf.Timestamp completed_at = 7;
+}
+
+// ExportConsignmentBundled records the bundling of consignments into an export
+// consignment with a tamper-evident Merkle root and the tip of the custody hash
+// chain, so downstream verifiers can validate integrity without the raw
+// documents.
+message ExportConsignmentBundled {
+  // Service-assigned immutable export bundle identifier.
+  string export_bundle_id = 1;
+  // Tokenized exporter reference.
+  string exporter_reference = 2;
+  // Tokenized references of the consignments bundled, in canonical order.
+  repeated string consignment_references = 3;
+  // Merkle root over the canonical bundle documents; raw documents are not
+  // carried in the event.
+  string bundle_root_hash_sha256 = 4;
+  // Tip hash of the custody hash chain spanning the bundled handoffs.
+  string custody_chain_tip_hash_sha256 = 5;
+  google.protobuf.Timestamp bundled_at = 6;
+}
+
+// FraudFlagRaised records a fraud-detection rule firing against a catch record
+// or vessel movement. The rule is enum-governed; only the digest of the
+// supporting evidence package is carried.
+message FraudFlagRaised {
+  string fraud_flag_id = 1;
+  FraudRule rule = 2;
+  // Catch record under review, when the flag is catch-scoped.
+  string catch_record_id = 3;
+  // Tokenized vessel reference under review.
+  string vessel_reference = 4;
+  Severity severity_level = 5;
+  // Digest of the evidence package supporting the flag; raw evidence is not
+  // carried in the event.
+  string evidence_digest_sha256 = 6;
+  google.protobuf.Timestamp raised_at = 7;
+}

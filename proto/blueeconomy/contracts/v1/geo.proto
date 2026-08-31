@@ -1,0 +1,272 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Geospatial and vessel-tracking events (geo.vessel-position.v1,
+// geo.vessel-static.v1, geo.geofence-event.v1, geo.app-position-report.v1,
+// geo.sos.v1 topics). Each message is a domain resource transported as the
+// primary resource of an EventEnvelope FHIR message Bundle. Reporters and
+// vessels are pseudonymous or tokenized references; raw AIS sentences, device
+// identities and personal records stay inside the producing boundary.
+// Positions, speeds, courses and draughts are fixed-point integers;
+// floating-point coordinates are prohibited. See docs/geo-events.md.
+
+// PositionSourceClass is the fail-closed taxonomy of position-report sources
+// admitted onto the geospatial event boundary. Free-text source values are
+// prohibited. The canonical JSON wire form renders these values without the
+// POSITION_SOURCE_CLASS_ prefix (for example POSITION_SOURCE_CLASS_AIS renders
+// as "AIS"); consumers must fail closed on any other value.
+enum PositionSourceClass {
+  POSITION_SOURCE_CLASS_UNSPECIFIED = 0;
+  // Terrestrial or satellite Automatic Identification System receiver network.
+  POSITION_SOURCE_CLASS_AIS = 1;
+  // GSM/GPRS tracker hardware installed on the vessel.
+  POSITION_SOURCE_CLASS_GSM_TRACKER = 2;
+  // Satellite tracker hardware installed on the vessel.
+  POSITION_SOURCE_CLASS_SAT_TRACKER = 3;
+  // Human-reported position from the mobile application (Tier-0).
+  POSITION_SOURCE_CLASS_APP_REPORT = 4;
+}
+
+// GeoClassification is the fail-closed handling classification asserted by the
+// producer for a geospatial event. It is deliberately distinct from the
+// envelope-level EnvelopeClassification: the envelope classification governs
+// the whole event's trust boundary, while this value classifies the geospatial
+// content itself (ISR-adjacent positions may carry up to SECRET). The
+// canonical JSON wire form renders these values without the
+// GEO_CLASSIFICATION_ prefix (for example GEO_CLASSIFICATION_RESTRICTED
+// renders as "RESTRICTED"); consumers must fail closed on any other value.
+enum GeoClassification {
+  GEO_CLASSIFICATION_UNSPECIFIED = 0;
+  GEO_CLASSIFICATION_PUBLIC = 1;
+  GEO_CLASSIFICATION_INTERNAL = 2;
+  GEO_CLASSIFICATION_RESTRICTED = 3;
+  GEO_CLASSIFICATION_CONFIDENTIAL = 4;
+  GEO_CLASSIFICATION_SECRET = 5;
+}
+
+// PositionAccuracy is the fail-closed position-accuracy indicator of a vessel
+// position report, aligned with the AIS position-accuracy flag. The
+// UNSPECIFIED zero value means "no accuracy asserted".
+enum PositionAccuracy {
+  POSITION_ACCURACY_UNSPECIFIED = 0;
+  // Standard GNSS accuracy (worse than 10 m).
+  POSITION_ACCURACY_LOW = 1;
+  // High accuracy (better than 10 m, for example DGNSS).
+  POSITION_ACCURACY_HIGH = 2;
+}
+
+// GeofenceTransition is the fail-closed direction of a geofence crossing.
+// Free-text transition values are prohibited. The canonical JSON wire form
+// renders these values without the GEOFENCE_TRANSITION_ prefix.
+enum GeofenceTransition {
+  GEOFENCE_TRANSITION_UNSPECIFIED = 0;
+  GEOFENCE_TRANSITION_ENTER = 1;
+  GEOFENCE_TRANSITION_EXIT = 2;
+}
+
+// EpfsType is the fail-closed set of electronic position-fixing system type
+// codes reported in AIS static data. The numeric values mirror the AIS EPFS
+// code table; EPFS_TYPE_UNSPECIFIED is the AIS "undefined" code and is invalid
+// on the wire. Consumers must fail closed on any other value.
+enum EpfsType {
+  EPFS_TYPE_UNSPECIFIED = 0;
+  EPFS_TYPE_GPS = 1;
+  EPFS_TYPE_GLONASS = 2;
+  EPFS_TYPE_COMBINED_GPS_GLONASS = 3;
+  EPFS_TYPE_LORAN_C = 4;
+  EPFS_TYPE_CHAYKA = 5;
+  EPFS_TYPE_INTEGRATED_NAVIGATION = 6;
+  EPFS_TYPE_OBSERVED = 7;
+  EPFS_TYPE_GALILEO = 8;
+  EPFS_TYPE_INTERNAL_GNSS = 15;
+}
+
+// VesselPositionReported records a single validated vessel position report
+// (geo.vessel-position.v1) from an AIS receiver, tracker device or the mobile
+// application. The position is fixed-point micro-degrees; raw NMEA sentences
+// are not carried in the event.
+message VesselPositionReported {
+  // Service-assigned immutable position report identifier.
+  string position_report_id = 1;
+  // Maritime Mobile Service Identity: exactly 9 decimal digits. Empty only
+  // when source_class is POSITION_SOURCE_CLASS_APP_REPORT and the reporting
+  // vessel has no assigned MMSI; consumers must fail closed on a malformed
+  // value.
+  string mmsi = 2;
+  PositionSourceClass source_class = 3;
+  // Latitude in micro-degrees (degrees scaled by 1e6, for example 6425000
+  // for 6.425 degrees). Fixed-point only; floating-point coordinates are
+  // prohibited.
+  int32 latitude_micros = 4;
+  // Longitude in micro-degrees (degrees scaled by 1e6).
+  int32 longitude_micros = 5;
+  // Speed over ground in milli-knots (knots scaled by 1e3, for example 12400
+  // for 12.4 knots). Fixed-point only.
+  uint32 speed_over_ground_milliknots = 6;
+  // Course over ground in milli-degrees (degrees scaled by 1e3, 0..360000).
+  uint32 course_over_ground_millidegrees = 7;
+  // True heading in milli-degrees (degrees scaled by 1e3, 0..360000). Absent
+  // when the source did not report a heading.
+  optional uint32 heading_millidegrees = 8;
+  // AIS navigational status code (0..15). Absent when the source did not
+  // report a navigational status.
+  optional int32 nav_status = 9;
+  // Position-accuracy indicator. POSITION_ACCURACY_UNSPECIFIED means the
+  // source did not assert an accuracy.
+  PositionAccuracy position_accuracy = 10;
+  // Time the position was observed by the source (RFC 3339 on the wire).
+  google.protobuf.Timestamp observed_at = 11;
+  // Tokenized receiver or station reference held by the ingestion service.
+  // Empty when not applicable (for example direct app reports).
+  string receiver_id = 12;
+  // AIS message type number (for example 1, 18 or 27). Absent for non-AIS
+  // sources.
+  optional int32 ais_message_type = 13;
+  GeoClassification classification = 14;
+  // Optional passthrough identifiers carried when the source reported them.
+  // Empty when not reported.
+  string imo = 15;
+  string callsign = 16;
+  string ship_name = 17;
+}
+
+// VesselStaticReported records static and voyage-related vessel data
+// (geo.vessel-static.v1) decoded from AIS message types 5, 19 and 24 or an
+// equivalent registry update.
+message VesselStaticReported {
+  // Service-assigned immutable static-report identifier.
+  string static_report_id = 1;
+  // Maritime Mobile Service Identity: exactly 9 decimal digits.
+  string mmsi = 2;
+  // IMO number. Empty when not reported.
+  string imo = 3;
+  // Radio call sign. Empty when not reported.
+  string callsign = 4;
+  // Reported vessel name. Empty when not reported.
+  string ship_name = 5;
+  // AIS ship and cargo type code (0..99).
+  int32 ship_type_code = 6;
+  // Dimension from the reference point to the bow, in whole metres.
+  uint32 dimension_bow_m = 7;
+  // Dimension from the reference point to the stern, in whole metres.
+  uint32 dimension_stern_m = 8;
+  // Dimension from the reference point to the port side, in whole metres.
+  uint32 dimension_port_m = 9;
+  // Dimension from the reference point to the starboard side, in whole metres.
+  uint32 dimension_starboard_m = 10;
+  // Present static draught in millimetres (metres scaled by 1e3, for example
+  // 8500 for 8.5 m). Fixed-point only; floating-point draughts are prohibited.
+  uint32 draught_millimetres = 11;
+  // Reported destination. Empty when not reported.
+  string destination = 12;
+  // Reported estimated time of arrival. Absent when not reported.
+  optional google.protobuf.Timestamp eta = 13;
+  // Electronic position-fixing system type reported by the vessel.
+  EpfsType epfs_type = 14;
+  // Time the static data was observed by the source.
+  google.protobuf.Timestamp observed_at = 15;
+  PositionSourceClass source_class = 16;
+  GeoClassification classification = 17;
+}
+
+// GeofenceEventRecorded records a vessel crossing into or out of a governed
+// geofence zone (geo.geofence-event.v1). Zones are resolvable by zone_id
+// inside the geofencing service; zone geometry is not carried in the event.
+message GeofenceEventRecorded {
+  // Service-assigned immutable geofence-event identifier.
+  string geofence_event_id = 1;
+  // Stable identifier of the geofence zone.
+  string zone_id = 2;
+  // Human-readable zone name (non-sensitive).
+  string zone_name = 3;
+  // Direction of the crossing. Consumers must fail closed when
+  // GEOFENCE_TRANSITION_UNSPECIFIED.
+  GeofenceTransition event = 4;
+  // Maritime Mobile Service Identity of the crossing vessel: exactly 9 decimal
+  // digits. Exactly one of mmsi or track_reference must be populated;
+  // consumers must fail closed on violation.
+  string mmsi = 5;
+  // Tokenized track reference held by the fusion service, used when the
+  // crossing vessel has no MMSI (for example app-only tracks).
+  string track_reference = 6;
+  // Latitude of the crossing point in micro-degrees (degrees scaled by 1e6).
+  // Fixed-point only; floating-point coordinates are prohibited.
+  int32 latitude_micros = 7;
+  // Longitude of the crossing point in micro-degrees (degrees scaled by 1e6).
+  int32 longitude_micros = 8;
+  // Time the crossing occurred.
+  google.protobuf.Timestamp occurred_at = 9;
+  GeoClassification classification = 10;
+}
+
+// AppPositionReported records a manual position report from the Tier-0 mobile
+// application (geo.app-position-report.v1). The reporter is pseudonymous and
+// the vessel is a tokenized reference; device identifiers and personal records
+// are not carried in the event.
+message AppPositionReported {
+  // Service-assigned immutable report identifier.
+  string position_report_id = 1;
+  // Pseudonymous reporter reference held by the mobile backend. Never a
+  // device identifier, phone number or personal name.
+  string reporter_id = 2;
+  // Tokenized vessel reference held by the vessel registry.
+  string vessel_reference = 3;
+  // Latitude in micro-degrees (degrees scaled by 1e6). Fixed-point only;
+  // floating-point coordinates are prohibited.
+  int32 latitude_micros = 4;
+  // Longitude in micro-degrees (degrees scaled by 1e6).
+  int32 longitude_micros = 5;
+  // Reported horizontal accuracy in whole metres. Zero when the device did
+  // not report an accuracy.
+  uint32 accuracy_m = 6;
+  // Reported speed in millimetres per second (metres per second scaled by
+  // 1e3). Absent when the device did not report a speed.
+  optional uint32 speed_millimetres_per_second = 7;
+  // Time the position was recorded by the device clock (RFC 3339 on the
+  // wire). Consumers must treat device clocks as untrusted and reconcile
+  // against the envelope occurred_at.
+  google.protobuf.Timestamp recorded_at = 8;
+  // Producer idempotency key from the device outbox; consumers must dedupe
+  // on (reporter_id, outbox_id).
+  string outbox_id = 9;
+  // Defaults to GEO_CLASSIFICATION_PUBLIC for Tier-0 community reports.
+  GeoClassification classification = 10;
+}
+
+// SosAlertRaised records a distress alert raised from the Tier-0 mobile
+// application (geo.sos.v1). The reporter is pseudonymous and the vessel is a
+// tokenized reference. Classification floor: producers must classify SOS
+// alerts at GEO_CLASSIFICATION_RESTRICTED or higher; consumers must fail
+// closed on a lower classification.
+message SosAlertRaised {
+  // Service-assigned immutable SOS alert identifier.
+  string sos_alert_id = 1;
+  // Pseudonymous reporter reference held by the mobile backend. Never a
+  // device identifier, phone number or personal name.
+  string reporter_id = 2;
+  // Tokenized vessel reference held by the vessel registry.
+  string vessel_reference = 3;
+  // Latitude in micro-degrees (degrees scaled by 1e6). Fixed-point only;
+  // floating-point coordinates are prohibited.
+  int32 latitude_micros = 4;
+  // Longitude in micro-degrees (degrees scaled by 1e6).
+  int32 longitude_micros = 5;
+  // Time the alert was recorded by the device clock (RFC 3339 on the wire).
+  // Consumers must treat device clocks as untrusted and reconcile against the
+  // envelope occurred_at.
+  google.protobuf.Timestamp recorded_at = 6;
+  // Producer idempotency key from the device outbox; consumers must dedupe
+  // on (reporter_id, outbox_id).
+  string outbox_id = 7;
+  // Optional short free-text distress note supplied by the reporter (capped
+  // by the producer at 280 characters). No documents, credentials or contact
+  // details may be embedded.
+  string free_text = 8;
+  // Must be GEO_CLASSIFICATION_RESTRICTED or higher.
+  GeoClassification classification = 9;
+}

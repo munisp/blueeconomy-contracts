@@ -1,0 +1,41 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-bluecarbon-000002",
+  "eventType": "bluecarbon.evidence.v1",
+  "occurredAt": "2026-08-29T14:00:00Z",
+  "producer": "blueeconomy-financial-controls",
+  "correlationId": "corr-bluecarbon-000002",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-bluecarbon-000002",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:0f285c85-e792-5a44-85cb-d2a1977327ac",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.BlueCarbonEvidenceSubmitted",
+          "reportId": "bcr-000001",
+          "projectId": "bcp-000007",
+          "periodFrom": "2026-01-01T00:00:00Z",
+          "periodTo": "2026-06-30T00:00:00Z",
+          "claimedTco2eMilli": "3000000",
+          "evidenceDigestSha256": [
+            "sha256:186a4431a4840d24632a7b928e24f1aaa6ccd0d465dfc41a8c7ed1631ba09a43",
+            "sha256:6af5deaea81785d32985ef78cfbab3a2af98826485e9652288d14799c1b64f5b"
+          ],
+          "methodologyCode": "VERRA_VM0033_V2_1",
+          "state": "SUBMITTED",
+          "submittedAt": "2026-08-01T10:00:00Z"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "bluecarbon-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWZpbmFuY2lhbC1jb250cm9scy0wIn0.eyJjbGFzc2lmaWNhdGlvbiI6IkNPTkZJREVOVElBTCIsImNvcnJlbGF0aW9uSWQiOiJjb3JyLWJsdWVjYXJib24tMDAwMDAyIiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC1ibHVlY2FyYm9uLTAwMDAwMiIsImV2ZW50VHlwZSI6ImJsdWVjYXJib24uZXZpZGVuY2UudjEiLCJmaGlyIjp7ImJ1bmRsZUlkIjoiYmRsLWJsdWVjYXJib24tMDAwMDAyIiwiZW50cnkiOlt7ImZ1bGxVcmwiOiJ1cm46dXVpZDowZjI4NWM4NS1lNzkyLTVhNDQtODVjYi1kMmExOTc3MzI3YWMiLCJyZXNvdXJjZSI6eyJAdHlwZSI6InR5cGUuZ29vZ2xlYXBpcy5jb20vYmx1ZWVjb25vbXkuY29udHJhY3RzLnYxLkJsdWVDYXJib25FdmlkZW5jZVN1Ym1pdHRlZCIsImNsYWltZWRUY28yZU1pbGxpIjoiMzAwMDAwMCIsImV2aWRlbmNlRGlnZXN0U2hhMjU2IjpbInNoYTI1NjoxODZhNDQzMWE0ODQwZDI0NjMyYTdiOTI4ZTI0ZjFhYWE2Y2NkMGQ0NjVkZmM0MWE4YzdlZDE2MzFiYTA5YTQzIiwic2hhMjU2OjZhZjVkZWFlYTgxNzg1ZDMyOTg1ZWY3OGNmYmFiM2EyYWY5ODgyNjQ4NWU5NjUyMjg4ZDE0Nzk5YzFiNjRmNWIiXSwibWV0aG9kb2xvZ3lDb2RlIjoiVkVSUkFfVk0wMDMzX1YyXzEiLCJwZXJpb2RGcm9tIjoiMjAyNi0wMS0wMVQwMDowMDowMFoiLCJwZXJpb2RUbyI6IjIwMjYtMDYtMzBUMDA6MDA6MDBaIiwicHJvamVjdElkIjoiYmNwLTAwMDAwNyIsInJlcG9ydElkIjoiYmNyLTAwMDAwMSIsInN0YXRlIjoiU1VCTUlUVEVEIiwic3VibWl0dGVkQXQiOiIyMDI2LTA4LTAxVDEwOjAwOjAwWiJ9fV0sInJlc291cmNlVHlwZSI6IkJ1bmRsZSIsInR5cGUiOiJtZXNzYWdlIn0sIm9jY3VycmVkQXQiOiIyMDI2LTA4LTI5VDE0OjAwOjAwWiIsInByb2R1Y2VyIjoiYmx1ZWVjb25vbXktZmluYW5jaWFsLWNvbnRyb2xzIiwicHJvdmVuYW5jZSI6eyJsZWRnZXJDb21taXRIYXNoIjoiIiwicHJpbmNpcGFsSWQiOiJmNDdhYzEwYi01OGNjLTQzNzItYTU2Ny0wZTAyYjJjM2Q0NzkiLCJwcmluY2lwYWxSb2xlIjoiYmx1ZWNhcmJvbi1wcm9kdWNlciJ9LCJyZWNvcmRDbGFzc2lmaWNhdGlvbiI6IkNPTkZJREVOVElBTCJ9.uyivz4CLVmNldt8Zj9a7IW8tVbwbb-nvQUHxAHXNu1EP4NvyuHjU3f1GEcOjXX171JzB047mkyaKKcFdfoNjAQ"
+  },
+  "classification": "CONFIDENTIAL",
+  "recordClassification": "CONFIDENTIAL"
+}

@@ -1,0 +1,39 @@
+{
+  "envelopeVersion": "1.0",
+  "eventId": "evt-welfare-000001",
+  "eventType": "seafarer.welfare.complaint.v1",
+  "occurredAt": "2026-08-29T14:00:00Z",
+  "producer": "blueeconomy-credential-verification",
+  "correlationId": "corr-welfare-000001",
+  "fhir": {
+    "resourceType": "Bundle",
+    "type": "message",
+    "bundleId": "bdl-welfare-000001",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:a1143b6d-fa91-54ec-879f-c406c339ed0d",
+        "resource": {
+          "@type": "type.googleapis.com/blueeconomy.contracts.v1.WelfareComplaintSubmitted",
+          "complaintId": "wfc-000001",
+          "channel": "ONBOARD_R515",
+          "seafarerReference": "sfr-9f2c41",
+          "vesselReference": "vsl-ref-04d2e8",
+          "operatorReference": "opr-7aa1",
+          "category": "REST_HOURS",
+          "narrativeDigestSha256": "sha256:c1c6e8c6348f304c5787e30a1f74cbec2876cf20727393697408f8e6a17b9659",
+          "rightToRedressAcknowledged": true,
+          "idempotencyKey": "idk-2026-08-29-000051",
+          "submittedAt": "2026-08-29T08:20:00Z"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "principalId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "principalRole": "welfare-producer",
+    "ledgerCommitHash": "",
+    "signature": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJsdWVlY29ub215LWNyZWRlbnRpYWwtdmVyaWZpY2F0aW9uLTAifQ.eyJjbGFzc2lmaWNhdGlvbiI6IkNPTkZJREVOVElBTCIsImNvcnJlbGF0aW9uSWQiOiJjb3JyLXdlbGZhcmUtMDAwMDAxIiwiZW52ZWxvcGVWZXJzaW9uIjoiMS4wIiwiZXZlbnRJZCI6ImV2dC13ZWxmYXJlLTAwMDAwMSIsImV2ZW50VHlwZSI6InNlYWZhcmVyLndlbGZhcmUuY29tcGxhaW50LnYxIiwiZmhpciI6eyJidW5kbGVJZCI6ImJkbC13ZWxmYXJlLTAwMDAwMSIsImVudHJ5IjpbeyJmdWxsVXJsIjoidXJuOnV1aWQ6YTExNDNiNmQtZmE5MS01NGVjLTg3OWYtYzQwNmMzMzllZDBkIiwicmVzb3VyY2UiOnsiQHR5cGUiOiJ0eXBlLmdvb2dsZWFwaXMuY29tL2JsdWVlY29ub215LmNvbnRyYWN0cy52MS5XZWxmYXJlQ29tcGxhaW50U3VibWl0dGVkIiwiY2F0ZWdvcnkiOiJSRVNUX0hPVVJTIiwiY2hhbm5lbCI6Ik9OQk9BUkRfUjUxNSIsImNvbXBsYWludElkIjoid2ZjLTAwMDAwMSIsImlkZW1wb3RlbmN5S2V5IjoiaWRrLTIwMjYtMDgtMjktMDAwMDUxIiwibmFycmF0aXZlRGlnZXN0U2hhMjU2Ijoic2hhMjU2OmMxYzZlOGM2MzQ4ZjMwNGM1Nzg3ZTMwYTFmNzRjYmVjMjg3NmNmMjA3MjczOTM2OTc0MDhmOGU2YTE3Yjk2NTkiLCJvcGVyYXRvclJlZmVyZW5jZSI6Im9wci03YWExIiwicmlnaHRUb1JlZHJlc3NBY2tub3dsZWRnZWQiOnRydWUsInNlYWZhcmVyUmVmZXJlbmNlIjoic2ZyLTlmMmM0MSIsInN1Ym1pdHRlZEF0IjoiMjAyNi0wOC0yOVQwODoyMDowMFoiLCJ2ZXNzZWxSZWZlcmVuY2UiOiJ2c2wtcmVmLTA0ZDJlOCJ9fV0sInJlc291cmNlVHlwZSI6IkJ1bmRsZSIsInR5cGUiOiJtZXNzYWdlIn0sIm9jY3VycmVkQXQiOiIyMDI2LTA4LTI5VDE0OjAwOjAwWiIsInByb2R1Y2VyIjoiYmx1ZWVjb25vbXktY3JlZGVudGlhbC12ZXJpZmljYXRpb24iLCJwcm92ZW5hbmNlIjp7ImxlZGdlckNvbW1pdEhhc2giOiIiLCJwcmluY2lwYWxJZCI6ImY0N2FjMTBiLTU4Y2MtNDM3Mi1hNTY3LTBlMDJiMmMzZDQ3OSIsInByaW5jaXBhbFJvbGUiOiJ3ZWxmYXJlLXByb2R1Y2VyIn0sInJlY29yZENsYXNzaWZpY2F0aW9uIjoiQ09ORklERU5USUFMIn0.A0SiCOqh1mM2murXDCsHcYaUp-WLcfGbiiIhXq2MBb1UdhzyPc_7j_ByG37Jq2wXxPiZqd-Rc_b65nJjdQZ4Dg"
+  },
+  "classification": "CONFIDENTIAL",
+  "recordClassification": "CONFIDENTIAL"
+}

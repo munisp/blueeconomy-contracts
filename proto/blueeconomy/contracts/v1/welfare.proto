@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package blueeconomy.contracts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/munisp/blueeconomy-contracts/gen/go/blueeconomy/contracts/v1;contractsv1";
+
+// Phase 8: seafarer welfare and MLC 2006 events (seafarers.welfare.v1
+// topic). Each message is a domain resource transported as the primary
+// resource of an EventEnvelope FHIR message Bundle. Complaints follow the
+// MLC 2006 Regulation 5.1.5 (on-board) and 5.2.2 (flag-state/onshore)
+// channels; complainant identity is withheld from respondents until
+// disclosure is legally required, and every disclosure is a logged,
+// enum-visible event. Rest-hour records are originated by operators/masters
+// digest-bound and immutable; breach flags are derived, recomputable
+// computations versioned by policy. Envelopes carrying these resources must
+// be classified ENVELOPE_CLASSIFICATION_CONFIDENTIAL. See
+// docs/seafarer-welfare-events.md.
+
+// WelfareComplaintChannel is the fail-closed MLC 2006 complaint channel.
+enum WelfareComplaintChannel {
+  WELFARE_COMPLAINT_CHANNEL_UNSPECIFIED = 0;
+  // On-board complaint procedure (MLC 2006 Regulation 5.1.5).
+  WELFARE_COMPLAINT_CHANNEL_ONBOARD_R515 = 1;
+  // Flag-state/onshore complaint channel (MLC 2006 Regulation 5.2.2).
+  WELFARE_COMPLAINT_CHANNEL_FLAGSTATE_R522 = 2;
+}
+
+// WelfareComplaintCategory is the fail-closed MLC 2006 complaint category
+// taxonomy. Free-text categories are prohibited.
+enum WelfareComplaintCategory {
+  WELFARE_COMPLAINT_CATEGORY_UNSPECIFIED = 0;
+  WELFARE_COMPLAINT_CATEGORY_WAGES = 1;
+  WELFARE_COMPLAINT_CATEGORY_REST_HOURS = 2;
+  WELFARE_COMPLAINT_CATEGORY_ACCOMMODATION = 3;
+  WELFARE_COMPLAINT_CATEGORY_FOOD = 4;
+  WELFARE_COMPLAINT_CATEGORY_MEDICAL = 5;
+  WELFARE_COMPLAINT_CATEGORY_HARASSMENT_BULLYING = 6;
+  WELFARE_COMPLAINT_CATEGORY_REPATRIATION = 7;
+  WELFARE_COMPLAINT_CATEGORY_ABANDONMENT = 8;
+  WELFARE_COMPLAINT_CATEGORY_OTHER_MLC = 9;
+}
+
+// WelfareComplaintStatus is the fail-closed lifecycle state of a complaint:
+// RECEIVED -> ACKED -> ONBOARD_PROCESS, with ESCALATED_FLAGSTATE and
+// REFERRED as governed branches and RESOLVED/CLOSED terminal. Status
+// transitions are maker-checker controlled inside the producing boundary.
+enum WelfareComplaintStatus {
+  WELFARE_COMPLAINT_STATUS_UNSPECIFIED = 0;
+  WELFARE_COMPLAINT_STATUS_RECEIVED = 1;
+  WELFARE_COMPLAINT_STATUS_ACKED = 2;
+  WELFARE_COMPLAINT_STATUS_ONBOARD_PROCESS = 3;
+  WELFARE_COMPLAINT_STATUS_ESCALATED_FLAGSTATE = 4;
+  WELFARE_COMPLAINT_STATUS_REFERRED = 5;
+  WELFARE_COMPLAINT_STATUS_RESOLVED = 6;
+  WELFARE_COMPLAINT_STATUS_CLOSED = 7;
+}
+
+// WelfareReferralStatus is the fail-closed lifecycle state of a
+// welfare-provider referral: OFFERED -> ACCEPTED -> ENGAGED -> CLOSED.
+enum WelfareReferralStatus {
+  WELFARE_REFERRAL_STATUS_UNSPECIFIED = 0;
+  WELFARE_REFERRAL_STATUS_OFFERED = 1;
+  WELFARE_REFERRAL_STATUS_ACCEPTED = 2;
+  WELFARE_REFERRAL_STATUS_ENGAGED = 3;
+  WELFARE_REFERRAL_STATUS_CLOSED = 4;
+}
+
+// RestHourRegime is the fail-closed work/rest compliance regime selected by
+// the signed welfare-policy document (MLC 2006 Regulation 2.3). The regime
+// is configuration, never hard-coded; endpoints fail closed until a signed
+// policy selects it.
+enum RestHourRegime {
+  REST_HOUR_REGIME_UNSPECIFIED = 0;
+  // Minimum rest: 10 h in any 24 h and 77 h in any 7 days.
+  REST_HOUR_REGIME_MIN_REST = 1;
+  // Maximum work: 14 h in any 24 h and 72 h in any 7 days.
+  REST_HOUR_REGIME_MAX_WORK = 2;
+}
+
+// RestHourRule is the fail-closed set of MLC 2006 Regulation 2.3 compliance
+// rules a rest-hour record can be flagged against. Flags are derived,
+// recomputable and policy-versioned.
+enum RestHourRule {
+  REST_HOUR_RULE_UNSPECIFIED = 0;
+  REST_HOUR_RULE_MIN_REST_10H_24 = 1;
+  REST_HOUR_RULE_MIN_REST_77H_7D = 2;
+  REST_HOUR_RULE_MAX_TWO_PERIODS = 3;
+  REST_HOUR_RULE_MIN_ONE_PERIOD_6H = 4;
+  REST_HOUR_RULE_MAX_GAP_14H = 5;
+  REST_HOUR_RULE_MAX_WORK_14H_24 = 6;
+  REST_HOUR_RULE_MAX_WORK_72H_7D = 7;
+}
+
+// WelfareComplaintSubmitted records the intake of an MLC 2006 complaint
+// (event type seafarer.welfare.complaint.v1). The complainant is bound to a
+// verified seafarer identity inside the producing boundary; the event carries
+// a tokenized reference only, and the narrative digest — never the narrative.
+// Anti-victimization (Reg 5.1.5(2)): complainant identity never leaves the
+// CONFIDENTIAL boundary into operator-facing views.
+message WelfareComplaintSubmitted {
+  // Service-assigned immutable complaint identifier.
+  string complaint_id = 1;
+  WelfareComplaintChannel channel = 2;
+  // Tokenized seafarer reference bound to the complainant's verified
+  // credential; never a name or credential payload.
+  string seafarer_reference = 3;
+  // Tokenized vessel and operator references held by the welfare service.
+  string vessel_reference = 4;
+  string operator_reference = 5;
+  WelfareComplaintCategory category = 6;
+  // Digest of the complaint narrative and attachments bundle
+  // ("sha256:<64 lowercase hex>"); the narrative itself is encrypted at rest
+  // inside the producing boundary and never carried in the event.
+  string narrative_digest_sha256 = 7;
+  // True when the right-to-external-redress notice (Reg 5.1.5(3)) was
+  // displayed and acknowledged at intake; producers must fail closed when
+  // false.
+  bool right_to_redress_acknowledged = 8;
+  // Producer idempotency key; replay returns the retained complaint.
+  string idempotency_key = 9;
+  google.protobuf.Timestamp submitted_at = 10;
+}
+
+// WelfareComplaintStatusTransitioned records a governed status transition of
+// a complaint (event type seafarer.welfare.complaint_status.v1). Disclosure
+// of complainant identity to the respondent is a distinct, legally gated,
+// maker-checker action and is always emitted as a transition event with
+// disclosure_event=true and a reason code; it is expected to be rare and is
+// alerted on.
+message WelfareComplaintStatusTransitioned {
+  string complaint_id = 1;
+  WelfareComplaintStatus prior_status = 2;
+  WelfareComplaintStatus status = 3;
+  // Stable machine-readable reason code for the transition.
+  string transition_reason_code = 4;
+  // True only when this transition records a legally required identity
+  // disclosure to the respondent (logged anti-victimization event).
+  bool disclosure_event = 5;
+  // Digest of the transition note ("sha256:<64 lowercase hex>"); note text
+  // is not carried in the event.
+  string note_digest_sha256 = 6;
+  google.protobuf.Timestamp transitioned_at = 7;
+}
+
+// WelfareReferralRecorded records a referral of a seafarer (optionally linked
+// to a complaint) to a welfare provider (event type
+// seafarer.welfare.referral.v1). Consent is mandatory and timestamped.
+message WelfareReferralRecorded {
+  // Service-assigned immutable referral identifier.
+  string referral_id = 1;
+  // Linked complaint reference; empty for self-referrals.
+  string complaint_id = 2;
+  // Tokenized seafarer reference.
+  string seafarer_reference = 3;
+  // Tokenized welfare service reference resolvable inside the producing
+  // boundary (directory entry).
+  string service_reference = 4;
+  WelfareReferralStatus status = 5;
+  // Time consent was recorded; mandatory.
+  google.protobuf.Timestamp consent_at = 6;
+  // Digest of the outcome note when closed ("sha256:<64 lowercase hex>").
+  string outcome_note_digest_sha256 = 7;
+  google.protobuf.Timestamp recorded_at = 8;
+}
+
+// RestHoursBreachFlagged records a derived compliance flag computed against
+// an operator-submitted rest-hour record (event type
+// seafarer.rest_hours.flagged.v1). Records are originated by the
+// operator/master digest-bound and immutable; the flag is a recomputable
+// computation versioned by policy_version. Absent records are reported as
+// NOT_SUBMITTED inside the producing boundary, never as compliant.
+message RestHoursBreachFlagged {
+  // Service-assigned immutable flag identifier.
+  string flag_id = 1;
+  // Reference to the operator-submitted rest-hour record being flagged.
+  string record_reference = 2;
+  // Tokenized seafarer and vessel references.
+  string seafarer_reference = 3;
+  string vessel_reference = 4;
+  RestHourRule rule = 5;
+  RestHourRegime regime = 6;
+  // Version of the signed welfare-policy document the flag was computed
+  // under; flags are reproducible for the same (record, policy_version).
+  string policy_version = 7;
+  // Digest of the source record the flag was computed from
+  // ("sha256:<64 lowercase hex>"), matching the submission digest.
+  string source_record_digest_sha256 = 8;
+  google.protobuf.Timestamp computed_at = 9;
+}

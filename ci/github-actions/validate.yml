@@ -12,8 +12,42 @@ jobs:
   protobuf-descriptor:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Install Protocol Buffers compiler
         run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Validate descriptors
         run: ./scripts/validate-contracts.sh
+
+  go-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@9672cee01808979ea1249f81d6d321217b9a10f6 # v1.47.2
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: gen/go/go.mod
+          cache: true
+      - name: Install pinned code generation plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+      - name: Verify generated code is current
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Freshness gate: regenerated output must match the committed tree;
+          # any drift fails the run instead of silently shipping stale code.
+          buf generate
+          if ! git diff --exit-code -- gen/; then
+            echo "Generated code is stale; run 'buf generate' and commit the result." >&2
+            exit 1
+          fi
+      - name: Build the generated Go module
+        working-directory: gen/go
+        run: |
+          go mod download
+          go build ./...
