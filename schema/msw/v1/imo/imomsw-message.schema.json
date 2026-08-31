@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blueeconomy.dev/schema/msw/v1/imo/imomsw-message.schema.json",
+  "title": "IMO-MSW cross-border message (wire export/import shape)",
+  "description": "Wire shape for MSW-to-MSW exchange of IMO FAL 1-7 + MDOH content mapped to the IMO Compendium Reference Model (FAL.5/Circ.45). Normative companion of docs/imo-wco-conformance.md and mappings/msw/v1/*.yaml. Fail closed: unknown mandatory elements, unmapped fields and unregistered extensions reject the message.",
+  "type": "object",
+  "required": ["messageType", "specVersion", "messageId", "issuedAt", "sender", "formType", "imoMessage"],
+  "additionalProperties": false,
+  "properties": {
+    "messageType": { "type": "string", "enum": ["IMO-MSW-FAL-EXPORT", "IMO-MSW-FAL-IMPORT"] },
+    "specVersion": { "type": "string", "const": "1.0" },
+    "messageId": { "type": "string", "minLength": 8, "maxLength": 128 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "sender": { "type": "string", "minLength": 1, "maxLength": 128, "description": "MSW operator identifier (e.g. MSW operator code of the sending window)." },
+    "formType": { "type": "string", "enum": ["FAL1", "FAL2", "FAL3", "FAL4", "FAL5", "FAL6", "FAL7", "MDOH"] },
+    "source": {
+      "type": "object",
+      "description": "Export provenance: the accepted platform declaration version this message was transformed from. Absent on IMPORT-direction messages (the importing platform stamps its own provenance).",
+      "required": ["declarationId", "visitId", "version", "formPayloadDigestSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "declarationId": { "type": "string" },
+        "visitId": { "type": "string" },
+        "version": { "type": "integer", "minimum": 1 },
+        "formPayloadDigestSha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "imoMessage": {
+      "type": "object",
+      "description": "IMO Compendium Reference Model structured content. Keys are the aggregate segments of the mapped imoPath values (e.g. IMOCompendium/GeneralDeclaration/Ship/IMONumber renders as imoMessage.IMOCompendium.GeneralDeclaration.Ship.IMONumber). Content rules are enforced against mappings/msw/v1/<form>.yaml, not by this schema alone.",
+      "minProperties": 1
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Registered platform-only fields only (mappings/msw/v1/extension-registry.yaml). Any other key rejects the message.",
+      "properties": {
+        "blueeconomy": {
+          "type": "object",
+          "additionalProperties": { "type": "object" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
